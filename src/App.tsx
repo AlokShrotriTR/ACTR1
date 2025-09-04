@@ -142,32 +142,22 @@ export const App: React.FC = () => {
     setIncident(null);
 
     try {
-      // For now, simulate ServiceNow API call since we'll have CORS issues
-      // In production, this should go through a backend API or proxy
-      console.log('Searching for incident:', userInput.majorIncidentNumber);
+      // Use the actual ServiceNow service instead of mock data
+      const incidentDetails = await serviceNowService.getIncidentByNumber(userInput.majorIncidentNumber);
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock incident data for demonstration
-      const mockIncident: IncidentDetails = {
-        number: userInput.majorIncidentNumber,
-        short_description: `Mock incident description for ${userInput.majorIncidentNumber}`,
-        state: '2',
-        priority: '1',
-        assigned_to: 'Technical Response Team',
-        sys_id: 'mock-sys-id-12345'
-      };
-      
-      setIncident(mockIncident);
-      
-      // Teams notification
-      if (isTeamsInitialized) {
-        try {
-          await microsoftTeams.app.notifySuccess();
-        } catch (error) {
-          console.warn('Teams notification failed:', error);
+      if (incidentDetails) {
+        setIncident(incidentDetails);
+        
+        // Teams notification
+        if (isTeamsInitialized) {
+          try {
+            await microsoftTeams.app.notifySuccess();
+          } catch (error) {
+            console.warn('Teams notification failed:', error);
+          }
         }
+      } else {
+        setError(`No incident found with number: ${userInput.majorIncidentNumber}`);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to search incident';
@@ -193,24 +183,27 @@ export const App: React.FC = () => {
     setError(null);
 
     try {
-      // Simulate TRT call trigger
-      console.log('Triggering TRT call for:', incident.number);
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Use the actual ServiceNow service for TRT call trigger
+      const success = await serviceNowService.triggerTRTCall(incident.number);
       
-      setSuccess(`TRT call successfully triggered for incident ${incident.number}`);
-      
-      // Teams success notification
-      if (isTeamsInitialized) {
-        try {
-          await microsoftTeams.app.notifySuccess();
-        } catch (error) {
-          console.warn('Teams notification failed:', error);
+      if (success) {
+        setSuccess(`TRT call successfully triggered for incident ${incident.number}`);
+        
+        // Teams success notification
+        if (isTeamsInitialized) {
+          try {
+            await microsoftTeams.app.notifySuccess();
+          } catch (error) {
+            console.warn('Teams notification failed:', error);
+          }
         }
+        
+        // Reset form
+        setUserInput({ majorIncidentNumber: '' });
+        setIncident(null);
+      } else {
+        setError('Failed to trigger TRT call. Please try again or contact support.');
       }
-      
-      // Reset form
-      setUserInput({ majorIncidentNumber: '' });
-      setIncident(null);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to trigger TRT call';
       setError(errorMessage);
