@@ -1,9 +1,10 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const webpack = require('webpack');
 
 module.exports = (env, argv) => {
   const isProduction = argv.mode === 'production';
-  const publicPath = isProduction ? '/ACTR1/' : '/';
+  const publicPath = isProduction ? './' : '/';
 
   return {
     entry: './src/index.tsx',
@@ -34,8 +35,14 @@ module.exports = (env, argv) => {
       new HtmlWebpackPlugin({
         template: './public/index.html',
         templateParameters: {
-          PUBLIC_URL: isProduction ? '/ACTR1' : '',
+          PUBLIC_URL: isProduction ? '.' : '',
         },
+      }),
+      new webpack.DefinePlugin({
+        'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
+        'process.env.REACT_APP_SERVICENOW_INSTANCE': JSON.stringify(process.env.REACT_APP_SERVICENOW_INSTANCE || 'https://dev279775.service-now.com'),
+        'process.env.REACT_APP_SERVICENOW_USERNAME': JSON.stringify(process.env.REACT_APP_SERVICENOW_USERNAME || 'admin'),
+        'process.env.REACT_APP_SERVICENOW_PASSWORD': JSON.stringify(process.env.REACT_APP_SERVICENOW_PASSWORD || ''),
       }),
     ],
     devServer: {
