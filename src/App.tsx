@@ -142,8 +142,44 @@ export const App: React.FC = () => {
     setIncident(null);
 
     try {
-      // Use the actual ServiceNow service instead of mock data
-      const incidentDetails = await serviceNowService.getIncidentByNumber(userInput.majorIncidentNumber);
+      // Mock data for demo purposes - replace with actual ServiceNow service call
+      let incidentDetails: IncidentDetails | null = null;
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Return different mock data based on incident number for demo
+      if (userInput.majorIncidentNumber === 'INC1234567') {
+        incidentDetails = {
+          number: 'INC1234567',
+          short_description: 'Email service outage affecting multiple users across North America region',
+          state: '2',
+          priority: '1',
+          assigned_to: 'John Smith',
+          sys_id: 'mock-sys-id-123'
+        };
+      } else if (userInput.majorIncidentNumber === 'INC9876543') {
+        incidentDetails = {
+          number: 'INC9876543',
+          short_description: 'Database connection timeout causing application slowdown',
+          state: '1',
+          priority: '2',
+          assigned_to: 'Sarah Johnson',
+          sys_id: 'mock-sys-id-456'
+        };
+      } else if (userInput.majorIncidentNumber === 'INC5555555') {
+        incidentDetails = {
+          number: 'INC5555555',
+          short_description: 'Network infrastructure failure - complete service disruption',
+          state: '2',
+          priority: '1',
+          assigned_to: 'Mike Chen',
+          sys_id: 'mock-sys-id-789'
+        };
+      } else {
+        // For any other incident number, return null (not found)
+        incidentDetails = null;
+      }
       
       if (incidentDetails) {
         setIncident(incidentDetails);
@@ -183,27 +219,24 @@ export const App: React.FC = () => {
     setError(null);
 
     try {
-      // Use the actual ServiceNow service for TRT call trigger
-      const success = await serviceNowService.triggerTRTCall(incident.number);
+      // Mock TRT call trigger - simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      if (success) {
-        setSuccess(`TRT call successfully triggered for incident ${incident.number}`);
-        
-        // Teams success notification
-        if (isTeamsInitialized) {
-          try {
-            await microsoftTeams.app.notifySuccess();
-          } catch (error) {
-            console.warn('Teams notification failed:', error);
-          }
+      // Simulate successful TRT call
+      setSuccess(`TRT call successfully triggered for incident ${incident.number}. Emergency response team has been notified.`);
+      
+      // Teams success notification
+      if (isTeamsInitialized) {
+        try {
+          await microsoftTeams.app.notifySuccess();
+        } catch (error) {
+          console.warn('Teams notification failed:', error);
         }
-        
-        // Reset form
-        setUserInput({ majorIncidentNumber: '' });
-        setIncident(null);
-      } else {
-        setError('Failed to trigger TRT call. Please try again or contact support.');
       }
+      
+      // Reset form
+      setUserInput({ majorIncidentNumber: '' });
+      setIncident(null);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to trigger TRT call';
       setError(errorMessage);
@@ -228,6 +261,16 @@ export const App: React.FC = () => {
         <Title1>Automated TRT Call for Major Incidents</Title1>
         <Body1>Submit major incident numbers for ServiceNow integration and TRT call triggering.</Body1>
         <Body1>Enter incident numbers in the format INC followed by 7 digits.</Body1>
+        
+        {/* Demo Instructions */}
+        <MessageBar intent="info" className={styles.messageBar}>
+          <div>
+            <Body1><strong>Demo Mode:</strong> Try these sample incident numbers:</Body1>
+            <Body1>• <strong>INC1234567</strong> - Email service outage (Critical)</Body1>
+            <Body1>• <strong>INC9876543</strong> - Database connection timeout (High)</Body1>
+            <Body1>• <strong>INC5555555</strong> - Network infrastructure failure (Critical)</Body1>
+          </div>
+        </MessageBar>
         
         {/* Error/Success Messages */}
         {error && (
