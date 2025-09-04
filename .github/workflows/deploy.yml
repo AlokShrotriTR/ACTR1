@@ -3,8 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
@@ -42,21 +41,3 @@ jobs:
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v4
-      
-  homepage:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-    - name: Update homepage in package.json
-      run: |
-        npm install -g json
-        json -I -f package.json -e 'this.homepage="https://github.com/AlokShrotriTR/ACTR1"'
-    - name: Commit changes
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add package.json
-        git commit -m "Update homepage in package.json" || echo "No changes to commit"
-    - name: Push changes
-      run: git push origin HEAD:main

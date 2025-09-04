@@ -1,7 +1,7 @@
 {
   "name": "actr1",
   "version": "1.0.0",
-  "homepage": "https://yourusername.github.io/ACTR1",
+  "homepage": "https://alokshrotritr.github.io/ACTR1",
   "description": "Custom Microsoft Teams Application for User Input",
   "main": "index.js",
   "scripts": {
