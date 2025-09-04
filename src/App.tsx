@@ -10,10 +10,17 @@ import {
   CardHeader,
   Text,
   Title1,
-  Subtitle2,
   Body1,
   Divider,
+  MessageBar,
+  Spinner,
+  makeStyles,
+  tokens
 } from '@fluentui/react-components';
+import { Search20Regular, ErrorCircle20Regular } from '@fluentui/react-icons';
+import { IncidentConfirmation } from './components/IncidentConfirmation';
+import { serviceNowService } from './services/serviceNowService';
+import { IncidentDetails } from './types/serviceNow';
 
 interface UserInput {
   majorIncidentNumber: string;
@@ -27,15 +34,43 @@ interface TeamsContext {
   locale?: string;
 }
 
+const useStyles = makeStyles({
+  appContainer: {
+    padding: tokens.spacingVerticalL,
+    maxWidth: '800px',
+    margin: '0 auto'
+  },
+  inputSection: {
+    marginBottom: tokens.spacingVerticalL
+  },
+  searchButton: {
+    marginTop: tokens.spacingVerticalM
+  },
+  messageBar: {
+    marginBottom: tokens.spacingVerticalM
+  },
+  loadingContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalS,
+    marginTop: tokens.spacingVerticalM
+  }
+});
+
 export const App: React.FC = () => {
+  const styles = useStyles();
+  
   const [userInput, setUserInput] = useState<UserInput>({
     majorIncidentNumber: ''
   });
   
   const [teamsContext, setTeamsContext] = useState<TeamsContext>({});
   const [isTeamsInitialized, setIsTeamsInitialized] = useState(false);
-  const [submittedData, setSubmittedData] = useState<UserInput | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [incident, setIncident] = useState<IncidentDetails | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isTriggeringTRT, setIsTriggeringTRT] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   // Validation function for incident number format
   const isValidIncidentNumber = (incidentNumber: string): boolean => {
@@ -57,18 +92,10 @@ export const App: React.FC = () => {
           userPrincipalName: context.user?.userPrincipalName,
           teamName: context.team?.displayName,
           channelName: context.channel?.displayName,
-          locale: context.app.locale,
+          locale: context.app.locale
         });
-        
-        // Teams context retrieved but no pre-filling needed for incident number
-        console.log('Teams context loaded:', {
-          userDisplayName: context.user?.displayName,
-          teamName: context.team?.displayName,
-          channelName: context.channel?.displayName
-        });
-        
       } catch (error) {
-        console.log('Teams initialization failed, running in standalone mode:', error);
+        console.warn('Teams SDK initialization failed - running in standalone mode');
         setIsTeamsInitialized(false);
       }
     };
@@ -76,164 +103,219 @@ export const App: React.FC = () => {
     initializeTeams();
   }, []);
 
-  const handleInputChange = (field: keyof UserInput, value: string) => {
-    setUserInput(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const handleInputChange = (value: string) => {
+    // Auto-format input to include INC prefix and limit to 7 digits
+    let formattedValue = value.toUpperCase();
+    
+    if (!formattedValue.startsWith('INC')) {
+      if (/^\d/.test(formattedValue)) {
+        formattedValue = 'INC' + formattedValue.replace(/\D/g, '');
+      } else {
+        formattedValue = 'INC';
+      }
+    } else {
+      const digits = formattedValue.substring(3).replace(/\D/g, '');
+      formattedValue = 'INC' + digits;
+    }
+    
+    // Limit to 10 characters total (INC + 7 digits)
+    if (formattedValue.length > 10) {
+      formattedValue = formattedValue.substring(0, 10);
+    }
+    
+    setUserInput({ majorIncidentNumber: formattedValue });
+    
+    // Clear previous results when input changes
+    setIncident(null);
+    setError(null);
+    setSuccess(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
+  const searchIncident = async () => {
+    if (!isValidIncidentNumber(userInput.majorIncidentNumber)) {
+      setError('Please enter a valid incident number in format INC1234567');
+      return;
+    }
+
+    setIsSearching(true);
+    setError(null);
+    setIncident(null);
+
     try {
-      // Simulate processing delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // For now, simulate ServiceNow API call since we'll have CORS issues
+      // In production, this should go through a backend API or proxy
+      console.log('Searching for incident:', userInput.majorIncidentNumber);
       
-      // Store the submitted data
-      setSubmittedData(userInput);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Show notification in Teams if available
+      // Mock incident data for demonstration
+      const mockIncident: IncidentDetails = {
+        number: userInput.majorIncidentNumber,
+        short_description: `Mock incident description for ${userInput.majorIncidentNumber}`,
+        state: '2',
+        priority: '1',
+        assigned_to: 'Technical Response Team',
+        sys_id: 'mock-sys-id-12345'
+      };
+      
+      setIncident(mockIncident);
+      
+      // Teams notification
       if (isTeamsInitialized) {
         try {
           await microsoftTeams.app.notifySuccess();
         } catch (error) {
-          console.log('Failed to show Teams notification:', error);
+          console.warn('Teams notification failed:', error);
+        }
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to search incident';
+      setError(errorMessage);
+      
+      // Teams error notification
+      if (isTeamsInitialized) {
+        try {
+          console.warn('Teams error notification - API call failed');
+        } catch (teamsError) {
+          console.warn('Teams error notification failed:', teamsError);
+        }
+      }
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleConfirmIncident = async () => {
+    if (!incident) return;
+
+    setIsTriggeringTRT(true);
+    setError(null);
+
+    try {
+      // Simulate TRT call trigger
+      console.log('Triggering TRT call for:', incident.number);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      setSuccess(`TRT call successfully triggered for incident ${incident.number}`);
+      
+      // Teams success notification
+      if (isTeamsInitialized) {
+        try {
+          await microsoftTeams.app.notifySuccess();
+        } catch (error) {
+          console.warn('Teams notification failed:', error);
         }
       }
       
       // Reset form
-      setUserInput({
-        majorIncidentNumber: ''
-      });
-      
+      setUserInput({ majorIncidentNumber: '' });
+      setIncident(null);
     } catch (error) {
-      console.error('Error submitting form:', error);
-      
-      if (isTeamsInitialized) {
-        try {
-          await microsoftTeams.app.notifyFailure({
-            reason: microsoftTeams.app.FailedReason.Other,
-            message: 'Error submitting form'
-          });
-        } catch (notificationError) {
-          console.log('Failed to show Teams notification:', notificationError);
-        }
-      }
+      const errorMessage = error instanceof Error ? error.message : 'Failed to trigger TRT call';
+      setError(errorMessage);
     } finally {
-      setIsLoading(false);
+      setIsTriggeringTRT(false);
     }
   };
 
-  const clearResponse = () => {
-    setSubmittedData(null);
+  const handleCancelConfirmation = () => {
+    setIncident(null);
+    setError(null);
+  };
+
+  const clearMessages = () => {
+    setError(null);
+    setSuccess(null);
   };
 
   return (
     <FluentProvider theme={webLightTheme}>
-      <div className="app-container">
+      <div className={styles.appContainer}>
         <Title1>Automated TRT Call for Major Incidents</Title1>
-        <div style={{ marginBottom: '20px' }}>
-          <Body1>Submit major incident numbers for processing and tracking.</Body1>
-          <Body1>Enter incident numbers in the format INC followed by 7 digits.</Body1>
-        </div>
+        <Body1>Submit major incident numbers for ServiceNow integration and TRT call triggering.</Body1>
+        <Body1>Enter incident numbers in the format INC followed by 7 digits.</Body1>
         
+        {/* Error/Success Messages */}
+        {error && (
+          <MessageBar
+            intent="error"
+            className={styles.messageBar}
+          >
+            <ErrorCircle20Regular />
+            {error}
+          </MessageBar>
+        )}
+        
+        {success && (
+          <MessageBar
+            intent="success"
+            className={styles.messageBar}
+          >
+            {success}
+          </MessageBar>
+        )}
+
         {/* Teams Context Information */}
-        <Card className="teams-context">
-          <CardHeader>
-            <Subtitle2>Teams Context</Subtitle2>
-          </CardHeader>
-          <div>
-            <Text>
-              <strong>Status:</strong> {isTeamsInitialized ? '✅ Connected to Teams' : '❌ Standalone Mode'}
-            </Text>
-            {isTeamsInitialized && (
-              <>
-                {teamsContext.userDisplayName && (
-                  <div><Text><strong>User:</strong> {teamsContext.userDisplayName}</Text></div>
-                )}
-                {teamsContext.teamName && (
-                  <div><Text><strong>Team:</strong> {teamsContext.teamName}</Text></div>
-                )}
-                {teamsContext.channelName && (
-                  <div><Text><strong>Channel:</strong> {teamsContext.channelName}</Text></div>
-                )}
-              </>
-            )}
-          </div>
-        </Card>
+        {isTeamsInitialized && (
+          <Card>
+            <CardHeader
+              header={<Body1>Teams Context</Body1>}
+              description={
+                <div>
+                  <Body1>User: {teamsContext.userDisplayName || 'Unknown'}</Body1>
+                  {teamsContext.teamName && <Body1>Team: {teamsContext.teamName}</Body1>}
+                </div>
+              }
+            />
+          </Card>
+        )}
 
         <Divider />
 
-        {/* User Input Form */}
-        <Card className="form-container">
-          <CardHeader>
-            <Subtitle2>Major Incident Input Form</Subtitle2>
-          </CardHeader>
-          <form onSubmit={handleSubmit}>
-            <Field label="Major Incident Number" required>
-              <Input
-                value={userInput.majorIncidentNumber}
-                onChange={(e, data) => {
-                  // Format the input to ensure INC prefix and numeric format
-                  let value = data.value.toUpperCase();
-                  
-                  // If user types without INC prefix, add it
-                  if (value && !value.startsWith('INC')) {
-                    // Remove any non-numeric characters and add INC prefix
-                    const numericPart = value.replace(/[^0-9]/g, '');
-                    value = numericPart ? `INC${numericPart}` : 'INC';
-                  } else if (value.startsWith('INC')) {
-                    // Ensure only numeric characters after INC
-                    const numericPart = value.slice(3).replace(/[^0-9]/g, '');
-                    value = `INC${numericPart}`;
-                  }
-                  
-                  // Limit to INC + 7 digits maximum
-                  if (value.length > 10) {
-                    value = value.slice(0, 10);
-                  }
-                  
-                  handleInputChange('majorIncidentNumber', value);
-                }}
-                placeholder="INC1234567"
-                pattern="INC[0-9]{7}"
-                title="Format: INC followed by 7 digits (e.g., INC1234567)"
-              />
-            </Field>
-
-            <div style={{ marginTop: '20px' }}>
-              <Button
-                type="submit"
-                appearance="primary"
-                disabled={isLoading || !isValidIncidentNumber(userInput.majorIncidentNumber)}
-              >
-                {isLoading ? 'Submitting...' : 'Submit'}
-              </Button>
+        {/* Input Section */}
+        <Card className={styles.inputSection}>
+          <CardHeader
+            header={<Title1>Major Incident Search</Title1>}
+            description={<Body1>Enter incident number to retrieve details from ServiceNow</Body1>}
+          />
+          
+          <Field label="Major Incident Number">
+            <Input
+              placeholder="INC1234567"
+              value={userInput.majorIncidentNumber}
+              onChange={(e) => handleInputChange(e.target.value)}
+              disabled={isSearching}
+              maxLength={10}
+            />
+          </Field>
+          
+          <Button
+            appearance="primary"
+            icon={<Search20Regular />}
+            onClick={searchIncident}
+            disabled={!isValidIncidentNumber(userInput.majorIncidentNumber) || isSearching}
+            className={styles.searchButton}
+          >
+            Search Incident
+          </Button>
+          
+          {isSearching && (
+            <div className={styles.loadingContainer}>
+              <Spinner size="small" />
+              <Body1>Searching ServiceNow...</Body1>
             </div>
-          </form>
+          )}
         </Card>
 
-        {/* Response Section */}
-        {submittedData && (
-          <Card className="response-section">
-            <CardHeader>
-              <Subtitle2>✅ Major Incident Submitted Successfully</Subtitle2>
-            </CardHeader>
-            <div>
-              <Text><strong>Major Incident Number:</strong> {submittedData.majorIncidentNumber}</Text><br />
-              <Text style={{ color: '#107c10', marginTop: '10px' }}>
-                Your major incident has been recorded and will be processed by the support team.
-              </Text>
-              
-              <div style={{ marginTop: '15px' }}>
-                <Button onClick={clearResponse} appearance="secondary">
-                  Submit Another Incident
-                </Button>
-              </div>
-            </div>
-          </Card>
+        {/* Incident Confirmation */}
+        {incident && (
+          <IncidentConfirmation
+            incident={incident}
+            onConfirm={handleConfirmIncident}
+            onCancel={handleCancelConfirmation}
+            isLoading={isTriggeringTRT}
+          />
         )}
       </div>
     </FluentProvider>
