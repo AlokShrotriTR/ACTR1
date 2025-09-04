@@ -1,0 +1,53 @@
+{
+  "name": "actr1",
+  "version": "1.0.0",
+  "homepage": "https://yourusername.github.io/ACTR1",
+  "description": "Custom Microsoft Teams Application for User Input",
+  "main": "index.js",
+  "scripts": {
+    "start": "webpack serve --config webpack.config.js",
+    "build": "webpack --config webpack.config.js --mode production",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "echo \"Linting not configured yet\"",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
+  },
+  "keywords": [
+    "teams",
+    "microsoft",
+    "react",
+    "typescript",
+    "user-input"
+  ],
+  "author": "ACTR1 Development Team",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@fluentui/react-components": "^9.68.3",
+    "@microsoft/teams-js": "^2.42.0",
+    "@microsoft/teamsfx": "^4.0.0",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.28.3",
+    "@babel/preset-env": "^7.28.3",
+    "@babel/preset-react": "^7.27.1",
+    "@babel/preset-typescript": "^7.27.1",
+    "@types/node": "^24.3.0",
+    "@types/webpack": "^5.28.5",
+    "@types/webpack-dev-server": "^4.7.1",
+    "babel-loader": "^10.0.0",
+    "css-loader": "^7.1.2",
+    "gh-pages": "^6.3.0",
+    "html-webpack-plugin": "^5.6.4",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.9.2",
+    "webpack": "^5.101.3",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.2"
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.16",
+  "version": "1.0.0",
+  "id": "12345678-1234-1234-1234-123456789012",
+  "packageName": "com.example.actr1",
+  "developer": {
+    "name": "ACTR1 Development Team",
+    "websiteUrl": "https://localhost:3000",
+    "privacyUrl": "https://localhost:3000/privacy",
+    "termsOfUseUrl": "https://localhost:3000/terms"
+  },
+  "icons": {
+    "color": "icon-color.png",
+    "outline": "icon-outline.png"
+  },
+  "name": {
+    "short": "ACTR1 User Input",
+    "full": "ACTR1 Custom Teams User Input Application"
+  },
+  "description": {
+    "short": "Collect and manage user input within Teams",
+    "full": "A custom Microsoft Teams application designed to efficiently collect and process user input with seamless Teams integration."
+  },
+  "accentColor": "#FFFFFF",
+  "bots": [],
+  "composeExtensions": [],
+  "configurableTabs": [
+    {
+      "configurationUrl": "https://localhost:3000/config",
+      "canUpdateConfiguration": true,
+      "scopes": [
+        "team",
+        "groupchat"
+      ]
+    }
+  ],
+  "staticTabs": [
+    {
+      "entityId": "userInputTab",
+      "name": "User Input",
+      "contentUrl": "https://localhost:3000",
+      "websiteUrl": "https://localhost:3000",
+      "scopes": [
+        "personal"
+      ]
+    }
+  ],
+  "permissions": [
+    "identity",
+    "messageTeamMembers"
+  ],
+  "validDomains": [
+    "localhost:3000"
+  ],
+  "webApplicationInfo": {
+    "id": "00000000-0000-0000-0000-000000000000",
+    "resource": "https://RscBasedStoreApp"
+  }
+}

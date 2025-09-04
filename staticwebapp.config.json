@@ -1,0 +1,30 @@
+{
+  "routes": [
+    {
+      "route": "/config",
+      "serve": "/index.html"
+    },
+    {
+      "route": "/privacy",
+      "serve": "/index.html"
+    },
+    {
+      "route": "/terms",
+      "serve": "/index.html"
+    },
+    {
+      "route": "/*",
+      "serve": "/index.html",
+      "statusCode": 200
+    }
+  ],
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/teams/*", "*.{css,scss,js,png,gif,ico,jpg,svg}"]
+  },
+  "globalHeaders": {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "SAMEORIGIN",
+    "Content-Security-Policy": "default-src 'self' https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; connect-src 'self' https:; frame-ancestors https://*.teams.microsoft.com https://*.skype.com;"
+  }
+}

@@ -1,0 +1,5 @@
+<!-- This is a placeholder SVG icon. Replace with actual PNG files for production -->
+<svg width="32" height="32" xmlns="http://www.w3.org/2000/svg">
+  <rect width="32" height="32" fill="#0078d4"/>
+  <text x="16" y="20" font-family="Arial" font-size="14" fill="white" text-anchor="middle">AI</text>
+</svg>
