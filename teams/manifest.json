@@ -1,33 +1,33 @@
 {
   "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
   "manifestVersion": "1.16",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "id": "12345678-1234-1234-1234-123456789012",
   "packageName": "com.example.actr1",
   "developer": {
     "name": "ACTR1 Development Team",
-    "websiteUrl": "https://localhost:3000",
-    "privacyUrl": "https://localhost:3000/privacy",
-    "termsOfUseUrl": "https://localhost:3000/terms"
+    "websiteUrl": "https://alokshrotritr.github.io/ACTR1",
+    "privacyUrl": "https://alokshrotritr.github.io/ACTR1/privacy",
+    "termsOfUseUrl": "https://alokshrotritr.github.io/ACTR1/terms"
   },
   "icons": {
     "color": "icon-color.png",
     "outline": "icon-outline.png"
   },
   "name": {
-    "short": "ACTR1 User Input",
-    "full": "ACTR1 Custom Teams User Input Application"
+    "short": "ACTR1 Major Incident",
+    "full": "ACTR1 Major Incident Reporting for Teams"
   },
   "description": {
-    "short": "Collect and manage user input within Teams",
-    "full": "A custom Microsoft Teams application designed to efficiently collect and process user input with seamless Teams integration."
+    "short": "Submit major incident numbers for automated TRT calls",
+    "full": "A Microsoft Teams application for submitting major incident numbers in INC format to trigger automated TRT (Technical Response Team) calls and tracking."
   },
   "accentColor": "#FFFFFF",
   "bots": [],
   "composeExtensions": [],
   "configurableTabs": [
     {
-      "configurationUrl": "https://localhost:3000/config",
+      "configurationUrl": "https://alokshrotritr.github.io/ACTR1/config",
       "canUpdateConfiguration": true,
       "scopes": [
         "team",
@@ -38,9 +38,9 @@
   "staticTabs": [
     {
       "entityId": "userInputTab",
-      "name": "User Input",
-      "contentUrl": "https://localhost:3000",
-      "websiteUrl": "https://localhost:3000",
+      "name": "Major Incident Input",
+      "contentUrl": "https://alokshrotritr.github.io/ACTR1",
+      "websiteUrl": "https://alokshrotritr.github.io/ACTR1",
       "scopes": [
         "personal"
       ]
@@ -51,7 +51,7 @@
     "messageTeamMembers"
   ],
   "validDomains": [
-    "localhost:3000"
+    "alokshrotritr.github.io"
   ],
   "webApplicationInfo": {
     "id": "00000000-0000-0000-0000-000000000000",
