@@ -1,4 +1,6 @@
-{
+cd teams
+# Create ZIP with manifest and icons
+powershell Compress-Archive -Path manifest.json,icon-color.png,icon-outline.png -DestinationPath ../ACTR1-Teams-v1.0.1.zip -Force{
   "routes": [
     {
       "route": "/config",
@@ -26,5 +28,17 @@
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "SAMEORIGIN",
     "Content-Security-Policy": "default-src 'self' https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; connect-src 'self' https:; frame-ancestors https://*.teams.microsoft.com https://*.skype.com;"
-  }
+  },
+  "developer": {
+    "websiteUrl": "https://yourusername.github.io/ACTR1",
+    "privacyUrl": "https://yourusername.github.io/ACTR1/privacy",
+    "termsOfUseUrl": "https://yourusername.github.io/ACTR1/terms"
+  },
+  "staticTabs": [{
+    "contentUrl": "https://yourusername.github.io/ACTR1",
+    "websiteUrl": "https://yourusername.github.io/ACTR1"
+  }],
+  "validDomains": [
+    "yourusername.github.io"
+  ]
 }
