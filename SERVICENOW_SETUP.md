@@ -9,10 +9,15 @@
    - **Name**: ACTR1 Teams App
    - **REST API**: Select your REST API (or leave blank for all)
    - **Domain**: https://alokshrotritr.github.io
+   - **Additional Domain**: https://localhost:3000 (for local testing)
    - **Max Age**: 86400
    - **HTTP Methods**: GET, POST, PUT, DELETE, OPTIONS
    - **HTTP Headers**: Content-Type, Authorization, Accept
    - **Allow Credentials**: true
+
+### IMPORTANT: Add Both Domains
+- **GitHub Pages**: https://alokshrotritr.github.io
+- **Local Development**: https://localhost:3000
 
 ### Method 2: Alternative - Use ServiceNow Application Registry
 1. Go to **System OAuth > Application Registry**
@@ -32,7 +37,11 @@ Create a backend service that:
 - API Endpoint: /api/now/table/incident
 
 ## Testing Steps:
-1. Apply CORS configuration
-2. Test API call from https://localhost:3000
-3. Verify incident data retrieval
-4. Test TRT call triggering
+1. Apply CORS configuration for https://alokshrotritr.github.io
+2. Wait for GitHub Pages deployment to complete
+3. Test API call from https://alokshrotritr.github.io/ACTR1/
+4. Verify incident data retrieval
+5. Test TRT call triggering
+
+## GitHub Pages Testing URL:
+https://alokshrotritr.github.io/ACTR1/
