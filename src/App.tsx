@@ -137,6 +137,7 @@ export const App: React.FC = () => {
       return;
     }
 
+    console.log('Starting search for incident:', userInput.majorIncidentNumber);
     setIsSearching(true);
     setError(null);
     setIncident(null);
@@ -147,6 +148,8 @@ export const App: React.FC = () => {
       
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      console.log('Search completed, processing incident number:', userInput.majorIncidentNumber);
       
       // Return different mock data based on incident number for demo
       if (userInput.majorIncidentNumber === 'INC1234567') {
@@ -181,17 +184,14 @@ export const App: React.FC = () => {
         incidentDetails = null;
       }
       
+      console.log('Incident details retrieved:', incidentDetails);
+      
       if (incidentDetails) {
         setIncident(incidentDetails);
+        console.log('Incident state set successfully, should display confirmation UI');
         
-        // Teams notification
-        if (isTeamsInitialized) {
-          try {
-            await microsoftTeams.app.notifySuccess();
-          } catch (error) {
-            console.warn('Teams notification failed:', error);
-          }
-        }
+        // Teams notification removed to avoid popup interference
+        console.log('Incident found successfully:', incidentDetails.number);
       } else {
         setError(`No incident found with number: ${userInput.majorIncidentNumber}`);
       }
@@ -225,14 +225,8 @@ export const App: React.FC = () => {
       // Simulate successful TRT call
       setSuccess(`TRT call successfully triggered for incident ${incident.number}. Emergency response team has been notified.`);
       
-      // Teams success notification
-      if (isTeamsInitialized) {
-        try {
-          await microsoftTeams.app.notifySuccess();
-        } catch (error) {
-          console.warn('Teams notification failed:', error);
-        }
-      }
+      // Teams success notification removed to avoid popup interference
+      console.log('TRT call triggered successfully for:', incident.number);
       
       // Reset form
       setUserInput({ majorIncidentNumber: '' });
