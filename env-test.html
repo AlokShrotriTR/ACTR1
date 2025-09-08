@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Environment Variables Test</title>
+</head>
+<body>
+    <h1>Environment Variables Test</h1>
+    <div id="result"></div>
+    
+    <script>
+        // This will only work after webpack build
+        const envVars = {
+            SERVICENOW_INSTANCE: process.env.REACT_APP_SERVICENOW_INSTANCE,
+            SERVICENOW_USERNAME: process.env.REACT_APP_SERVICENOW_USERNAME,
+            SERVICENOW_PASSWORD: process.env.REACT_APP_SERVICENOW_PASSWORD ? '***PRESENT***' : '***MISSING***',
+            PASSWORD_LENGTH: process.env.REACT_APP_SERVICENOW_PASSWORD ? process.env.REACT_APP_SERVICENOW_PASSWORD.length : 0
+        };
+        
+        document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(envVars, null, 2) + '</pre>';
+        
+        console.log('Environment Variables:', envVars);
+        console.log('Full password available:', !!process.env.REACT_APP_SERVICENOW_PASSWORD);
+    </script>
+</body>
+</html>

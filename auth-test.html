@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ServiceNow Custom API Authentication Test</title>
+</head>
+<body>
+    <h1>ServiceNow Custom API Authentication Test</h1>
+    <button onclick="testAuth()">Test Authentication</button>
+    <pre id="result"></pre>
+    
+    <script>
+        async function testAuth() {
+            const resultElement = document.getElementById('result');
+            resultElement.textContent = 'Testing authentication...';
+            
+            try {
+                // Test with Basic Auth credentials
+                const username = 'admin';
+                const password = 'x{?Gktp(@n>932KeG)w{0Ix{eJnEFW{_cN)*[-Fvd)3>y&vu^14Ljp4E_Y@uI=+b}';
+                const credentials = btoa(`${username}:${password}`);
+                
+                console.log('Testing with credentials for user:', username);
+                
+                const response = await fetch('https://dev279775.service-now.com/api/1813479/actr1_incident/incident/INC0008001', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Basic ${credentials}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+                
+                console.log('Response Status:', response.status);
+                console.log('Response Headers:', [...response.headers.entries()]);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultElement.textContent = `SUCCESS!\n\nStatus: ${response.status}\nData: ${JSON.stringify(data, null, 2)}`;
+                } else {
+                    const errorText = await response.text();
+                    resultElement.textContent = `ERROR ${response.status}: ${response.statusText}\n\nResponse: ${errorText}`;
+                }
+                
+            } catch (error) {
+                console.error('API Test Error:', error);
+                resultElement.textContent = `NETWORK ERROR: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
