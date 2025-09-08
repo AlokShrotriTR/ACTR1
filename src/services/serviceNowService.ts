@@ -18,9 +18,32 @@ class ServiceNowService {
 
   async getIncidentByNumber(incidentNumber: string): Promise<IncidentDetails | null> {
     try {
-      const url = `${this.config.instanceUrl}${this.config.tableApi}/incident?sysparm_query=number=${incidentNumber}&sysparm_fields=number,short_description,state,priority,assigned_to,sys_id`;
+      // Try custom REST API first (better CORS support)
+      // Actual endpoint structure: /api/{scope_id}/actr1_incident/incident/{number}
+      const customUrl = `${this.config.instanceUrl}/api/1813479/actr1_incident/incident/${incidentNumber}`;
       
-      const response = await fetch(url, {
+      console.log('Attempting custom API call to:', customUrl);
+      
+      const customResponse = await fetch(customUrl, {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+        mode: 'cors'
+      });
+
+      if (customResponse.ok) {
+        const customData: ServiceNowResponse = await customResponse.json();
+        if (customData.result && customData.result.length > 0) {
+          console.log('Custom API success:', customData.result[0]);
+          return customData.result[0];
+        }
+      }
+      
+      console.log('Custom API failed, trying standard API...');
+      
+      // Fallback to standard API
+      const standardUrl = `${this.config.instanceUrl}${this.config.tableApi}/incident?sysparm_query=number=${incidentNumber}&sysparm_fields=number,short_description,state,priority,assigned_to,sys_id`;
+      
+      const response = await fetch(standardUrl, {
         method: 'GET',
         headers: this.getAuthHeaders(),
         mode: 'cors'
@@ -39,16 +62,37 @@ class ServiceNowService {
       return null;
     } catch (error) {
       console.error('Error fetching incident from ServiceNow:', error);
-      throw new Error('Failed to retrieve incident details from ServiceNow');
+      throw new Error('Failed to retrieve incident details from ServiceNow. CORS may not be properly configured.');
     }
   }
 
   async triggerTRTCall(incidentNumber: string): Promise<boolean> {
     try {
-      // This would be your actual TRT call API endpoint
-      const url = `${this.config.instanceUrl}/api/x_tr_trt/trigger_call`;
+      // Try custom TRT API first
+      const customTRTUrl = `${this.config.instanceUrl}/api/1813479/actr1_incident/trt_call`;
       
-      const response = await fetch(url, {
+      console.log('Attempting custom TRT API call to:', customTRTUrl);
+      
+      const customResponse = await fetch(customTRTUrl, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({
+          incident_number: incidentNumber,
+          call_type: 'major_incident_trt'
+        })
+      });
+
+      if (customResponse.ok) {
+        console.log('Custom TRT API success');
+        return true;
+      }
+      
+      console.log('Custom TRT API failed, trying standard approach...');
+      
+      // Fallback to standard API endpoint
+      const standardUrl = `${this.config.instanceUrl}/api/x_tr_trt/trigger_call`;
+      
+      const response = await fetch(standardUrl, {
         method: 'POST',
         headers: this.getAuthHeaders(),
         body: JSON.stringify({
