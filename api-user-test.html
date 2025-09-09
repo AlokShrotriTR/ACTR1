@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ServiceNow API User Test</title>
+</head>
+<body>
+    <h1>🔐 ServiceNow API User Test</h1>
+    <p>Test your new API user credentials</p>
+    
+    <div>
+        <label>Username: <input type="text" id="username" placeholder="actr1_api_user" /></label><br><br>
+        <label>Password: <input type="password" id="password" placeholder="Enter password" /></label><br><br>
+        <button onclick="testCredentials()">Test API Access</button>
+        <button onclick="clearResults()">Clear</button>
+    </div>
+    
+    <pre id="result" style="background: #f5f5f5; padding: 15px; margin-top: 20px; border-radius: 4px;"></pre>
+    
+    <script>
+        async function testCredentials() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const resultElement = document.getElementById('result');
+            
+            if (!username || !password) {
+                resultElement.textContent = '❌ Please enter both username and password';
+                return;
+            }
+            
+            resultElement.textContent = '🔄 Testing API credentials...\n';
+            
+            try {
+                const credentials = btoa(`${username}:${password}`);
+                const url = 'https://dev279775.service-now.com/api/now/table/incident?sysparm_limit=1&sysparm_fields=number,short_description';
+                
+                console.log('Testing credentials for user:', username);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Basic ${credentials}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+                
+                resultElement.textContent += `Response Status: ${response.status} ${response.statusText}\n`;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultElement.textContent += `✅ SUCCESS! API access working\n`;
+                    resultElement.textContent += `Found ${data.result?.length || 0} incidents\n`;
+                    resultElement.textContent += `Response: ${JSON.stringify(data, null, 2)}\n`;
+                } else {
+                    const errorText = await response.text();
+                    resultElement.textContent += `❌ FAILED! Status: ${response.status}\n`;
+                    resultElement.textContent += `Error: ${errorText}\n`;
+                    
+                    if (response.status === 401) {
+                        resultElement.textContent += '\n💡 401 = Authentication failed. Check username/password.\n';
+                    } else if (response.status === 403) {
+                        resultElement.textContent += '\n💡 403 = Access denied. User needs proper roles/permissions.\n';
+                    }
+                }
+                
+            } catch (error) {
+                resultElement.textContent += `🚫 NETWORK ERROR: ${error.message}\n`;
+                resultElement.textContent += 'This might be a CORS issue or network connectivity problem.\n';
+            }
+        }
+        
+        function clearResults() {
+            document.getElementById('result').textContent = '';
+        }
+    </script>
+</body>
+</html>
