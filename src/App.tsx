@@ -71,11 +71,56 @@ export const App: React.FC = () => {
   const [isTriggeringTRT, setIsTriggeringTRT] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   // Validation function for incident number format
   const isValidIncidentNumber = (incidentNumber: string): boolean => {
     const regex = /^INC\d{7}$/;
     return regex.test(incidentNumber);
+  };
+
+  // Debug function to test ServiceNow API
+  const testServiceNowAPI = async () => {
+    setDebugInfo('🔄 Testing ServiceNow API...\n');
+    setError(null);
+    
+    try {
+      // Test 1: Custom API
+      setDebugInfo(prev => prev + '1️⃣ Testing Custom API endpoint...\n');
+      try {
+        const customResult = await serviceNowService.getIncidentByNumber('INC0008001');
+        setDebugInfo(prev => prev + '✅ Custom API SUCCESS!\n' + JSON.stringify(customResult, null, 2) + '\n\n');
+      } catch (customError: any) {
+        setDebugInfo(prev => prev + '❌ Custom API FAILED: ' + customError.message + '\n\n');
+      }
+      
+      // Test 2: Standard API
+      setDebugInfo(prev => prev + '2️⃣ Testing Standard API endpoint...\n');
+      try {
+        const response = await fetch('https://dev279775.service-now.com/api/now/table/incident?sysparm_query=number=INC0008001&sysparm_fields=number,short_description,state', {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Basic ' + btoa('admin:x{?Gktp(@n>932KeG)w{0Ix{eJnEFW{_cN)*[-Fvd)3>y&vu^14Ljp4E_Y@uI=+b}'),
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          mode: 'cors'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setDebugInfo(prev => prev + '✅ Standard API SUCCESS!\n' + JSON.stringify(data, null, 2) + '\n\n');
+        } else {
+          const errorText = await response.text();
+          setDebugInfo(prev => prev + `❌ Standard API FAILED: ${response.status} ${response.statusText}\n${errorText}\n\n`);
+        }
+      } catch (standardError: any) {
+        setDebugInfo(prev => prev + '❌ Standard API NETWORK ERROR: ' + standardError.message + '\n\n');
+      }
+      
+    } catch (error: any) {
+      setDebugInfo(prev => prev + '🚫 Debug test failed: ' + error.message + '\n');
+    }
   };
 
   useEffect(() => {
@@ -243,6 +288,23 @@ export const App: React.FC = () => {
           </MessageBar>
         )}
 
+        {debugInfo && (
+          <Card style={{ marginBottom: '20px' }}>
+            <CardHeader header={<Body1>🔧 Debug Information</Body1>} />
+            <pre style={{ 
+              whiteSpace: 'pre-wrap', 
+              fontSize: '12px', 
+              backgroundColor: '#f5f5f5', 
+              padding: '10px', 
+              borderRadius: '4px',
+              maxHeight: '400px',
+              overflow: 'auto'
+            }}>
+              {debugInfo}
+            </pre>
+          </Card>
+        )}
+
         {/* Teams Context Information */}
         {isTeamsInitialized && (
           <Card>
@@ -285,6 +347,15 @@ export const App: React.FC = () => {
             className={styles.searchButton}
           >
             Search Incident
+          </Button>
+
+          <Button
+            appearance="secondary"
+            onClick={testServiceNowAPI}
+            disabled={isSearching}
+            style={{ marginLeft: '10px' }}
+          >
+            🔧 Debug API
           </Button>
           
           {isSearching && (
