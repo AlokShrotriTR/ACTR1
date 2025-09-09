@@ -36,6 +36,14 @@ class ServiceNowService {
           console.log('Custom API success:', customData.result[0]);
           return customData.result[0];
         }
+      } else {
+        console.log('Custom API failed with status:', customResponse.status, customResponse.statusText);
+        if (customResponse.status === 401) {
+          throw new Error('Authentication failed. Please check ServiceNow credentials.');
+        }
+        if (customResponse.status === 404) {
+          console.log('Custom API endpoint not found, trying standard API...');
+        }
       }
       
       console.log('Custom API failed, trying standard API...');
@@ -50,6 +58,12 @@ class ServiceNowService {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please check ServiceNow credentials.');
+        }
+        if (response.status === 403) {
+          throw new Error('Access forbidden. Please check ServiceNow permissions.');
+        }
         throw new Error(`ServiceNow API error: ${response.status} ${response.statusText}`);
       }
 
@@ -63,13 +77,13 @@ class ServiceNowService {
     } catch (error) {
       console.error('Error fetching incident from ServiceNow:', error);
       
-      // CORS fallback - provide demo data for testing when CORS is not configured
-      if (error instanceof TypeError || (error as any).message?.includes('CORS')) {
-        console.log('CORS error detected, providing demo data for:', incidentNumber);
-        return this.getCORSFallbackData(incidentNumber);
+      // Log the actual error for debugging
+      if (error instanceof Error) {
+        console.error('Detailed error:', error.message);
       }
       
-      throw new Error('Failed to retrieve incident details from ServiceNow. CORS may not be properly configured.');
+      // Don't use fallback data - let the real error show
+      throw error;
     }
   }
 
@@ -159,5 +173,13 @@ const serviceNowConfig: ServiceNowConfig = {
   username: process.env.REACT_APP_SERVICENOW_USERNAME || '',
   password: process.env.REACT_APP_SERVICENOW_PASSWORD || ''
 };
+
+// Debug configuration (remove in production)
+console.log('ServiceNow Config Debug:', {
+  instanceUrl: serviceNowConfig.instanceUrl,
+  username: serviceNowConfig.username,
+  passwordSet: !!serviceNowConfig.password,
+  passwordLength: serviceNowConfig.password.length
+});
 
 export const serviceNowService = new ServiceNowService(serviceNowConfig);

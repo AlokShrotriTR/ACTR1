@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ServiceNow Incident Search Test</title>
+</head>
+<body>
+    <h1>ServiceNow Incident Search Test</h1>
+    
+    <div>
+        <h2>Test Multiple Incidents</h2>
+        <button onclick="testIncident('INC0008001')">Test INC0008001 (Working)</button>
+        <button onclick="testIncident('INC0007002')">Test INC0007002 (Not Working)</button>
+        <button onclick="testIncident('INC0007001')">Test INC0007001</button>
+        <button onclick="testIncident('INC0010001')">Test INC0010001</button>
+    </div>
+    
+    <div>
+        <h2>Custom Search</h2>
+        <input type="text" id="customIncident" placeholder="Enter incident number" value="INC0007002">
+        <button onclick="testCustomIncident()">Test Custom Incident</button>
+    </div>
+    
+    <pre id="result"></pre>
+    
+    <script>
+        async function testIncident(incidentNumber) {
+            const resultElement = document.getElementById('result');
+            resultElement.textContent = `Testing incident: ${incidentNumber}...\n`;
+            
+            try {
+                const username = 'admin';
+                const password = 'x{?Gktp(@n>932KeG)w{0Ix{eJnEFW{_cN)*[-Fvd)3>y&vu^14Ljp4E_Y@uI=+b}';
+                const credentials = btoa(`${username}:${password}`);
+                
+                // Test custom API first
+                console.log(`Testing custom API for ${incidentNumber}`);
+                const customUrl = `https://dev279775.service-now.com/api/1813479/actr1_incident/incident/${incidentNumber}`;
+                
+                const customResponse = await fetch(customUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Basic ${credentials}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+                
+                let customResult = null;
+                if (customResponse.ok) {
+                    customResult = await customResponse.json();
+                    resultElement.textContent += `✅ CUSTOM API SUCCESS for ${incidentNumber}:\n${JSON.stringify(customResult, null, 2)}\n\n`;
+                } else {
+                    const errorText = await customResponse.text();
+                    resultElement.textContent += `❌ CUSTOM API FAILED for ${incidentNumber}: ${customResponse.status} ${customResponse.statusText}\n${errorText}\n\n`;
+                }
+                
+                // Test standard API as fallback
+                console.log(`Testing standard API for ${incidentNumber}`);
+                const standardUrl = `https://dev279775.service-now.com/api/now/table/incident?sysparm_query=number=${incidentNumber}&sysparm_fields=number,short_description,state,priority,assigned_to,sys_id`;
+                
+                const standardResponse = await fetch(standardUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Basic ${credentials}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+                
+                if (standardResponse.ok) {
+                    const standardResult = await standardResponse.json();
+                    resultElement.textContent += `✅ STANDARD API SUCCESS for ${incidentNumber}:\n${JSON.stringify(standardResult, null, 2)}\n\n`;
+                } else {
+                    const errorText = await standardResponse.text();
+                    resultElement.textContent += `❌ STANDARD API FAILED for ${incidentNumber}: ${standardResponse.status} ${standardResponse.statusText}\n${errorText}\n\n`;
+                }
+                
+            } catch (error) {
+                console.error('Test Error:', error);
+                resultElement.textContent += `🚫 NETWORK ERROR for ${incidentNumber}: ${error.message}\n\n`;
+            }
+        }
+        
+        function testCustomIncident() {
+            const incidentNumber = document.getElementById('customIncident').value;
+            if (incidentNumber) {
+                testIncident(incidentNumber);
+            }
+        }
+    </script>
+</body>
+</html>
