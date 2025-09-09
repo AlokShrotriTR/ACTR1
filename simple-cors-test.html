@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple CORS Test</title>
+</head>
+<body>
+    <h1>Simple CORS Test</h1>
+    <button onclick="testCORS()">Test Basic CORS</button>
+    <pre id="result"></pre>
+    
+    <script>
+        async function testCORS() {
+            const resultElement = document.getElementById('result');
+            resultElement.textContent = 'Testing basic CORS...\n';
+            
+            try {
+                console.log('Testing CORS with basic request...');
+                
+                // Simple GET request to test CORS
+                const response = await fetch('https://dev279775.service-now.com/api/1813479/actr1_incident/incident/INC0008001', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+                
+                console.log('Response received:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+                
+                const responseText = await response.text();
+                
+                resultElement.textContent += `✅ CORS WORKING!\n`;
+                resultElement.textContent += `Status: ${response.status}\n`;
+                resultElement.textContent += `Response: ${responseText}\n`;
+                
+            } catch (error) {
+                console.error('CORS Test Error:', error);
+                resultElement.textContent += `❌ CORS FAILED: ${error.message}\n\n`;
+                
+                if (error.message.includes('CORS')) {
+                    resultElement.textContent += `🔍 CORS Issue Detected:\n`;
+                    resultElement.textContent += `1. ServiceNow custom API script not updated\n`;
+                    resultElement.textContent += `2. CORS headers not being set\n`;
+                    resultElement.textContent += `3. GitHub Pages domain not allowed\n`;
+                }
+            }
+        }
+    </script>
+</body>
+</html>

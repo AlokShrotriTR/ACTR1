@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ServiceNow Authentication Debug Test</title>
+</head>
+<body>
+    <h1>ServiceNow Authentication Debug Test</h1>
+    
+    <button onclick="testBasicAuth()">Test Basic Auth (Fallback)</button>
+    <button onclick="testHeaderAuth()">Test Header Auth (New Method)</button>
+    <button onclick="clearResults()">Clear Results</button>
+    
+    <pre id="result"></pre>
+    
+    <script>
+        const CLIENT_ID = 'f5128ff271732250433aeb0e714b8cae';
+        const CLIENT_SECRET = 'VxgMXG`ccF';
+        const INSTANCE_URL = 'https://dev279775.service-now.com';
+        
+        async function testBasicAuth() {
+            const resultElement = document.getElementById('result');
+            resultElement.textContent = 'Testing basic authentication (original method)...\n';
+            
+            try {
+                // Use basic auth with admin credentials as fallback
+                const username = 'admin';
+                const password = 'x{?Gktp(@n>932KeG)w{0Ix{eJnEFW{_cN)*[-Fvd)3>y&vu^14Ljp4E_Y@uI=+b}';
+                const credentials = btoa(`${username}:${password}`);
+                
+                const response = await fetch(`${INSTANCE_URL}/api/1813479/actr1_incident/incident/INC0008001`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Basic ${credentials}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultElement.textContent += `✅ BASIC AUTH SUCCESS!\n\n`;
+                    resultElement.textContent += `Response: ${JSON.stringify(data, null, 2)}\n`;
+                } else {
+                    const errorText = await response.text();
+                    resultElement.textContent += `❌ BASIC AUTH FAILED: ${response.status}\n${errorText}\n`;
+                }
+                
+            } catch (error) {
+                resultElement.textContent += `🚫 NETWORK ERROR: ${error.message}\n`;
+            }
+        }
+        
+        async function testHeaderAuth() {
+            const resultElement = document.getElementById('result');
+            resultElement.textContent += '\n--- Testing Header Authentication ---\n';
+            
+            try {
+                const response = await fetch(`${INSTANCE_URL}/api/1813479/actr1_incident/incident/INC0008001`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Client-ID': CLIENT_ID,
+                        'X-Client-Secret': CLIENT_SECRET,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultElement.textContent += `✅ HEADER AUTH SUCCESS!\n\n`;
+                    resultElement.textContent += `Response: ${JSON.stringify(data, null, 2)}\n`;
+                } else {
+                    const errorText = await response.text();
+                    resultElement.textContent += `❌ HEADER AUTH FAILED: ${response.status}\n${errorText}\n`;
+                }
+                
+            } catch (error) {
+                resultElement.textContent += `🚫 NETWORK ERROR: ${error.message}\n`;
+            }
+        }
+        
+        function clearResults() {
+            document.getElementById('result').textContent = '';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ServiceNow Custom Headers Authentication Test</title>
+</head>
+<body>
+    <h1>ServiceNow Custom Headers Authentication Test</h1>
+    <p>Testing the CORS-friendly authentication method using custom headers</p>
+    
+    <button onclick="testCustomHeaderAuth()">Test Custom Header Authentication</button>
+    <button onclick="clearResults()">Clear Results</button>
+    
+    <pre id="result"></pre>
+    
+    <script>
+        const CLIENT_ID = 'f5128ff271732250433aeb0e714b8cae';
+        const CLIENT_SECRET = 'VxgMXG`ccF';
+        const INSTANCE_URL = 'https://dev279775.service-now.com';
+        
+        async function testCustomHeaderAuth() {
+            const resultElement = document.getElementById('result');
+            resultElement.textContent = 'Testing custom header authentication...\n';
+            
+            try {
+                // Test the custom API endpoint with header-based auth
+                const customUrl = `${INSTANCE_URL}/api/1813479/actr1_incident/incident/INC0008001`;
+                
+                console.log('Testing custom API with headers:', customUrl);
+                console.log('Client ID:', CLIENT_ID);
+                console.log('Client Secret:', CLIENT_SECRET ? 'Present' : 'Missing');
+                
+                const response = await fetch(customUrl, {
+                    method: 'GET',
+                    headers: {
+                        'X-Client-ID': CLIENT_ID,
+                        'X-Client-Secret': CLIENT_SECRET,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultElement.textContent += `✅ CUSTOM HEADER AUTH SUCCESS!\n\n`;
+                    resultElement.textContent += `Status: ${response.status}\n`;
+                    resultElement.textContent += `Response: ${JSON.stringify(data, null, 2)}\n`;
+                    
+                    if (data.result && data.result.length > 0) {
+                        const incident = data.result[0];
+                        resultElement.textContent += `\n--- Incident Details ---\n`;
+                        resultElement.textContent += `Number: ${incident.number}\n`;
+                        resultElement.textContent += `Description: ${incident.short_description}\n`;
+                        resultElement.textContent += `State: ${incident.state}\n`;
+                        resultElement.textContent += `Priority: ${incident.priority}\n`;
+                        resultElement.textContent += `Assigned To: ${incident.assigned_to}\n`;
+                    }
+                } else {
+                    const errorText = await response.text();
+                    resultElement.textContent += `❌ CUSTOM HEADER AUTH FAILED: ${response.status} ${response.statusText}\n\n`;
+                    resultElement.textContent += `Error Response: ${errorText}\n`;
+                    
+                    // Check for specific error types
+                    if (response.status === 401) {
+                        resultElement.textContent += `\n🔍 Authentication Issue: Please check if:\n`;
+                        resultElement.textContent += `1. ServiceNow custom API script is updated\n`;
+                        resultElement.textContent += `2. Client credentials are correct\n`;
+                        resultElement.textContent += `3. CORS headers include X-Client-ID and X-Client-Secret\n`;
+                    } else if (response.status === 404) {
+                        resultElement.textContent += `\n🔍 API Endpoint Issue: Please check if:\n`;
+                        resultElement.textContent += `1. Custom REST API is deployed in ServiceNow\n`;
+                        resultElement.textContent += `2. API endpoint path is correct\n`;
+                        resultElement.textContent += `3. ServiceNow instance URL is correct\n`;
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Test Error:', error);
+                resultElement.textContent += `🚫 NETWORK ERROR: ${error.message}\n\n`;
+                
+                if (error.message.includes('CORS')) {
+                    resultElement.textContent += `🔍 CORS Issue: Please check if:\n`;
+                    resultElement.textContent += `1. ServiceNow CORS rules allow GitHub Pages domain\n`;
+                    resultElement.textContent += `2. Custom headers (X-Client-ID, X-Client-Secret) are allowed\n`;
+                    resultElement.textContent += `3. Custom API script sets proper CORS headers\n`;
+                }
+            }
+        }
+        
+        function clearResults() {
+            document.getElementById('result').textContent = '';
+        }
+    </script>
+</body>
+</html>

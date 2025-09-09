@@ -8,10 +8,11 @@ class ServiceNowService {
   }
 
   private async getAuthHeaders(): Promise<HeadersInit> {
-    // Use custom headers instead of OAuth token for CORS compatibility
+    // Fallback to basic auth until CORS headers issue is resolved
+    // TODO: Switch back to custom headers once ServiceNow script is updated
+    const basicAuth = btoa('admin:x{?Gktp(@n>932KeG)w{0Ix{eJnEFW{_cN)*[-Fvd)3>y&vu^14Ljp4E_Y@uI=+b}');
     return {
-      'X-Client-ID': this.config.clientId,
-      'X-Client-Secret': this.config.clientSecret,
+      'Authorization': `Basic ${basicAuth}`,
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     };
