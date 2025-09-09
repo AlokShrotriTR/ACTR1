@@ -41,8 +41,8 @@ module.exports = (env, argv) => {
       new webpack.DefinePlugin({
         'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
         'process.env.REACT_APP_SERVICENOW_INSTANCE': JSON.stringify(process.env.REACT_APP_SERVICENOW_INSTANCE || 'https://dev279775.service-now.com'),
-        'process.env.REACT_APP_SERVICENOW_USERNAME': JSON.stringify(process.env.REACT_APP_SERVICENOW_USERNAME || 'admin'),
-        'process.env.REACT_APP_SERVICENOW_PASSWORD': JSON.stringify(process.env.REACT_APP_SERVICENOW_PASSWORD || ''),
+        'process.env.REACT_APP_SERVICENOW_CLIENT_ID': JSON.stringify(process.env.REACT_APP_SERVICENOW_CLIENT_ID || ''),
+        'process.env.REACT_APP_SERVICENOW_CLIENT_SECRET': JSON.stringify(process.env.REACT_APP_SERVICENOW_CLIENT_SECRET || ''),
       }),
     ],
     devServer: {

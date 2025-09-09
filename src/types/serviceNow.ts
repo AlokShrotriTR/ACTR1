@@ -1,8 +1,16 @@
 export interface ServiceNowConfig {
   instanceUrl: string;
   tableApi: string;
-  username: string;
-  password: string;
+  clientId: string;
+  clientSecret: string;
+  grantType?: string;
+}
+
+export interface OAuthTokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  scope: string;
 }
 
 export interface IncidentDetails {

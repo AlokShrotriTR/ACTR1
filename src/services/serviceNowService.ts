@@ -1,16 +1,58 @@
-import { ServiceNowConfig, ServiceNowResponse, IncidentDetails } from '../types/serviceNow';
+import { ServiceNowConfig, ServiceNowResponse, IncidentDetails, OAuthTokenResponse } from '../types/serviceNow';
 
 class ServiceNowService {
   private config: ServiceNowConfig;
+  private accessToken: string | null = null;
+  private tokenExpiry: number = 0;
 
   constructor(config: ServiceNowConfig) {
     this.config = config;
   }
 
-  private getAuthHeaders(): HeadersInit {
-    const credentials = btoa(`${this.config.username}:${this.config.password}`);
+  private async getAccessToken(): Promise<string> {
+    // Check if we have a valid token
+    if (this.accessToken && Date.now() < this.tokenExpiry) {
+      return this.accessToken;
+    }
+
+    // Get new token
+    const tokenUrl = `${this.config.instanceUrl}/oauth_token.do`;
+    
+    const body = new URLSearchParams({
+      grant_type: this.config.grantType || 'client_credentials',
+      client_id: this.config.clientId,
+      client_secret: this.config.clientSecret
+    });
+
+    console.log('Requesting OAuth token from:', tokenUrl);
+
+    const response = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+      },
+      body: body.toString(),
+      mode: 'cors'
+    });
+
+    if (!response.ok) {
+      throw new Error(`OAuth token request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const tokenData: OAuthTokenResponse = await response.json();
+    this.accessToken = tokenData.access_token;
+    // Set expiry to 90% of actual expiry time for safety margin
+    this.tokenExpiry = Date.now() + (tokenData.expires_in * 900);
+
+    console.log('OAuth token obtained successfully');
+    return this.accessToken;
+  }
+
+  private async getAuthHeaders(): Promise<HeadersInit> {
+    const token = await this.getAccessToken();
     return {
-      'Authorization': `Basic ${credentials}`,
+      'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     };
@@ -26,7 +68,7 @@ class ServiceNowService {
       
       const customResponse = await fetch(customUrl, {
         method: 'GET',
-        headers: this.getAuthHeaders(),
+        headers: await this.getAuthHeaders(),
         mode: 'cors'
       });
 
@@ -53,7 +95,7 @@ class ServiceNowService {
       
       const response = await fetch(standardUrl, {
         method: 'GET',
-        headers: this.getAuthHeaders(),
+        headers: await this.getAuthHeaders(),
         mode: 'cors'
       });
 
@@ -132,7 +174,7 @@ class ServiceNowService {
       
       const customResponse = await fetch(customTRTUrl, {
         method: 'POST',
-        headers: this.getAuthHeaders(),
+        headers: await this.getAuthHeaders(),
         body: JSON.stringify({
           incident_number: incidentNumber,
           call_type: 'major_incident_trt'
@@ -151,7 +193,7 @@ class ServiceNowService {
       
       const response = await fetch(standardUrl, {
         method: 'POST',
-        headers: this.getAuthHeaders(),
+        headers: await this.getAuthHeaders(),
         body: JSON.stringify({
           incident_number: incidentNumber,
           call_type: 'major_incident_trt'
@@ -170,16 +212,17 @@ class ServiceNowService {
 const serviceNowConfig: ServiceNowConfig = {
   instanceUrl: process.env.REACT_APP_SERVICENOW_INSTANCE || 'https://your-instance.service-now.com',
   tableApi: '/api/now/table',
-  username: process.env.REACT_APP_SERVICENOW_USERNAME || '',
-  password: process.env.REACT_APP_SERVICENOW_PASSWORD || ''
+  clientId: process.env.REACT_APP_SERVICENOW_CLIENT_ID || '',
+  clientSecret: process.env.REACT_APP_SERVICENOW_CLIENT_SECRET || '',
+  grantType: 'client_credentials'
 };
 
 // Debug configuration (remove in production)
 console.log('ServiceNow Config Debug:', {
   instanceUrl: serviceNowConfig.instanceUrl,
-  username: serviceNowConfig.username,
-  passwordSet: !!serviceNowConfig.password,
-  passwordLength: serviceNowConfig.password.length
+  clientId: serviceNowConfig.clientId,
+  clientSecretSet: !!serviceNowConfig.clientSecret,
+  grantType: serviceNowConfig.grantType
 });
 
 export const serviceNowService = new ServiceNowService(serviceNowConfig);
