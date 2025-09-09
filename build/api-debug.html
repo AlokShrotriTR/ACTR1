@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ServiceNow API Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { margin: 10px; padding: 10px 20px; background: #0078d4; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #106ebe; }
+        pre { background: #f5f5f5; padding: 15px; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; max-height: 500px; overflow-y: auto; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>🔍 ServiceNow API Debug Tool</h1>
+    <p>Testing API calls to identify authentication issues</p>
+    
+    <div>
+        <button onclick="testCustomAPI()">🔧 Test Custom API</button>
+        <button onclick="testStandardAPI()">📊 Test Standard API</button>
+        <button onclick="testCredentials()">🔑 Test Credentials</button>
+        <button onclick="clearResults()">🧹 Clear Results</button>
+    </div>
+    
+    <pre id="result">Click a button above to start testing...</pre>
+    
+    <script>
+        const SERVICENOW_URL = 'https://dev279775.service-now.com';
+        const USERNAME = 'admin';
+        const PASSWORD = 'x{?Gktp(@n>932KeG)w{0Ix{eJnEFW{_cN)*[-Fvd)3>y&vu^14Ljp4E_Y@uI=+b}';
+        
+        function log(message, type = 'info') {
+            const resultElement = document.getElementById('result');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            resultElement.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            console.log(`${prefix} ${message}`);
+        }
+        
+        function getBasicAuthHeader() {
+            return 'Basic ' + btoa(`${USERNAME}:${PASSWORD}`);
+        }
+        
+        async function testCustomAPI() {
+            clearResults();
+            log('Testing Custom API Endpoint...', 'info');
+            log(`URL: ${SERVICENOW_URL}/api/1813479/actr1_incident/incident/INC0008001`, 'info');
+            
+            try {
+                const response = await fetch(`${SERVICENOW_URL}/api/1813479/actr1_incident/incident/INC0008001`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': getBasicAuthHeader(),
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+                
+                log(`Response Status: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+                log(`Response Headers: ${JSON.stringify([...response.headers.entries()])}`, 'info');
+                
+                const responseText = await response.text();
+                
+                if (response.ok) {
+                    try {
+                        const data = JSON.parse(responseText);
+                        log('CUSTOM API SUCCESS!', 'success');
+                        log(`Response Data: ${JSON.stringify(data, null, 2)}`, 'success');
+                    } catch (e) {
+                        log(`Response Text: ${responseText}`, 'success');
+                    }
+                } else {
+                    log(`CUSTOM API FAILED!`, 'error');
+                    log(`Error Response: ${responseText}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`NETWORK ERROR: ${error.message}`, 'error');
+                log(`Error Type: ${error.name}`, 'error');
+                log(`This usually indicates CORS issues or network connectivity problems`, 'error');
+            }
+        }
+        
+        async function testStandardAPI() {
+            log('\n--- Testing Standard ServiceNow API ---', 'info');
+            
+            try {
+                const url = `${SERVICENOW_URL}/api/now/table/incident?sysparm_query=number=INC0008001&sysparm_fields=number,short_description,state,priority`;
+                log(`URL: ${url}`, 'info');
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': getBasicAuthHeader(),
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+                
+                log(`Standard API Status: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+                
+                const responseText = await response.text();
+                
+                if (response.ok) {
+                    try {
+                        const data = JSON.parse(responseText);
+                        log('STANDARD API SUCCESS!', 'success');
+                        log(`Found ${data.result?.length || 0} incidents`, 'success');
+                        if (data.result && data.result.length > 0) {
+                            log(`Incident Data: ${JSON.stringify(data.result[0], null, 2)}`, 'success');
+                        }
+                    } catch (e) {
+                        log(`Response Text: ${responseText}`, 'success');
+                    }
+                } else {
+                    log(`STANDARD API FAILED!`, 'error');
+                    log(`Error Response: ${responseText}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`STANDARD API NETWORK ERROR: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testCredentials() {
+            log('\n--- Testing Credential Format ---', 'info');
+            
+            const authHeader = getBasicAuthHeader();
+            log(`Username: ${USERNAME}`, 'info');
+            log(`Password Length: ${PASSWORD.length} characters`, 'info');
+            log(`Auth Header: ${authHeader.substring(0, 20)}...`, 'info');
+            
+            // Test if we can decode our own credentials
+            try {
+                const decoded = atob(authHeader.substring(6));
+                const parts = decoded.split(':');
+                log(`Decoded Username: ${parts[0]}`, parts[0] === USERNAME ? 'success' : 'error');
+                log(`Decoded Password Length: ${parts[1]?.length || 0}`, parts[1] === PASSWORD ? 'success' : 'error');
+            } catch (e) {
+                log(`Error decoding credentials: ${e.message}`, 'error');
+            }
+            
+            // Test direct ServiceNow access hint
+            log('\n💡 Try opening this URL in a new tab to test credentials:', 'info');
+            log(`${SERVICENOW_URL}/api/now/table/incident?sysparm_limit=1`, 'info');
+            log('(It should prompt for login - use admin credentials)', 'info');
+        }
+        
+        function clearResults() {
+            document.getElementById('result').textContent = '';
+        }
+    </script>
+</body>
+</html>
