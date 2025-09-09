@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import * as microsoftTeams from '@microsoft/teams-js';
 import {
   FluentProvider,
   webLightTheme,
@@ -18,6 +19,14 @@ import { Search20Regular } from '@fluentui/react-icons';
 
 interface UserInput {
   majorIncidentNumber: string;
+}
+
+interface TeamsContext {
+  userDisplayName?: string;
+  userPrincipalName?: string;
+  teamName?: string;
+  channelName?: string;
+  locale?: string;
 }
 
 const useStyles = makeStyles({
@@ -50,12 +59,45 @@ export const App: React.FC = () => {
   const [incidentData, setIncidentData] = useState<any>(null);
   const [showCredentialTest, setShowCredentialTest] = useState(false);
   const [testCredentials, setTestCredentials] = useState({ username: '', password: '' });
+  const [teamsContext, setTeamsContext] = useState<TeamsContext | null>(null);
+  const [isTeamsInitialized, setIsTeamsInitialized] = useState(false);
 
   // Validation function for incident number format
   const isValidIncidentNumber = (incidentNumber: string): boolean => {
     const regex = /^INC\d{7}$/;
     return regex.test(incidentNumber);
   };
+
+  // Initialize Teams SDK
+  useEffect(() => {
+    const initializeTeams = async () => {
+      try {
+        await microsoftTeams.app.initialize();
+        setIsTeamsInitialized(true);
+        
+        // Get Teams context
+        const context = await microsoftTeams.app.getContext();
+        setTeamsContext({
+          userDisplayName: context.user?.displayName,
+          userPrincipalName: context.user?.userPrincipalName,
+          teamName: context.team?.displayName,
+          channelName: context.channel?.displayName,
+          locale: context.app.locale
+        });
+        
+        console.log('✅ Teams SDK initialized successfully');
+        setMessage(`👋 Welcome ${context.user?.displayName || 'User'}! Teams integration active.`);
+        setMessageType('success');
+      } catch (error) {
+        console.warn('⚠️ Teams SDK initialization failed - running in standalone mode', error);
+        setIsTeamsInitialized(false);
+        setMessage('Running in standalone mode (not in Teams)');
+        setMessageType('info');
+      }
+    };
+
+    initializeTeams();
+  }, []);
 
   // Simple ServiceNow API call function
   const searchServiceNow = async (incidentNumber: string) => {
@@ -309,10 +351,30 @@ export const App: React.FC = () => {
           </Card>
         )}
 
+        {/* Teams Context Information */}
+        {isTeamsInitialized && teamsContext && (
+          <Card style={{ marginTop: '20px' }}>
+            <CardHeader
+              header={<Text weight="semibold">🔗 Teams Context</Text>}
+            />
+            <div style={{ padding: '10px', fontSize: '14px' }}>
+              <p><strong>User:</strong> {teamsContext.userDisplayName}</p>
+              <p><strong>Email:</strong> {teamsContext.userPrincipalName}</p>
+              {teamsContext.teamName && (
+                <p><strong>Team:</strong> {teamsContext.teamName}</p>
+              )}
+              {teamsContext.channelName && (
+                <p><strong>Channel:</strong> {teamsContext.channelName}</p>
+              )}
+            </div>
+          </Card>
+        )}
+
         <div style={{ marginTop: '20px', fontSize: '14px', color: '#666', textAlign: 'center' }}>
           <p>✅ Clean UI working</p>
           <p>✅ Input validation working</p>
           <p>✅ ServiceNow API integration added</p>
+          <p>{isTeamsInitialized ? '✅ Teams integration active' : '⚠️ Standalone mode (not in Teams)'}</p>
           <p>💡 First test your API credentials, then search incidents</p>
           <p>🔧 Test with incident number: INC0008001</p>
         </div>
