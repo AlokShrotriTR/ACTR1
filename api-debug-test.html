@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ServiceNow Direct API Test</title>
+</head>
+<body>
+    <h1>ServiceNow Direct API Test</h1>
+    <p>Testing direct API calls to identify the exact issue</p>
+    
+    <button onclick="testCustomAPI()">Test Custom API</button>
+    <button onclick="testStandardAPI()">Test Standard API</button>
+    <button onclick="testDirectBrowser()">Test Direct Browser Access</button>
+    <button onclick="clearResults()">Clear Results</button>
+    
+    <pre id="result"></pre>
+    
+    <script>
+        async function testCustomAPI() {
+            const resultElement = document.getElementById('result');
+            resultElement.textContent = 'Testing Custom API with Basic Auth...\n';
+            
+            try {
+                const username = 'admin';
+                const password = 'x{?Gktp(@n>932KeG)w{0Ix{eJnEFW{_cN)*[-Fvd)3>y&vu^14Ljp4E_Y@uI=+b}';
+                const credentials = btoa(`${username}:${password}`);
+                
+                console.log('Testing custom API endpoint...');
+                console.log('Credentials created for user:', username);
+                
+                const customUrl = 'https://dev279775.service-now.com/api/1813479/actr1_incident/incident/INC0008001';
+                
+                const response = await fetch(customUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Basic ${credentials}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+                
+                console.log('Custom API Response Status:', response.status);
+                console.log('Custom API Response Headers:', [...response.headers.entries()]);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultElement.textContent += `✅ CUSTOM API SUCCESS!\n\n`;
+                    resultElement.textContent += `Status: ${response.status}\n`;
+                    resultElement.textContent += `Data: ${JSON.stringify(data, null, 2)}\n`;
+                } else {
+                    const errorText = await response.text();
+                    resultElement.textContent += `❌ CUSTOM API FAILED!\n`;
+                    resultElement.textContent += `Status: ${response.status} ${response.statusText}\n`;
+                    resultElement.textContent += `Error: ${errorText}\n\n`;
+                    
+                    // Log detailed error info
+                    console.error('Custom API Error Details:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        headers: [...response.headers.entries()],
+                        body: errorText
+                    });
+                }
+                
+            } catch (error) {
+                console.error('Custom API Network Error:', error);
+                resultElement.textContent += `🚫 NETWORK ERROR: ${error.message}\n`;
+                resultElement.textContent += `Error Type: ${error.name}\n`;
+                resultElement.textContent += `Stack: ${error.stack}\n`;
+            }
+        }
+        
+        async function testStandardAPI() {
+            const resultElement = document.getElementById('result');
+            resultElement.textContent += '\n--- Testing Standard API ---\n';
+            
+            try {
+                const username = 'admin';
+                const password = 'x{?Gktp(@n>932KeG)w{0Ix{eJnEFW{_cN)*[-Fvd)3>y&vu^14Ljp4E_Y@uI=+b}';
+                const credentials = btoa(`${username}:${password}`);
+                
+                const standardUrl = 'https://dev279775.service-now.com/api/now/table/incident?sysparm_query=number=INC0008001&sysparm_fields=number,short_description,state,priority,assigned_to,sys_id';
+                
+                const response = await fetch(standardUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Basic ${credentials}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+                
+                console.log('Standard API Response Status:', response.status);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultElement.textContent += `✅ STANDARD API SUCCESS!\n\n`;
+                    resultElement.textContent += `Status: ${response.status}\n`;
+                    resultElement.textContent += `Data: ${JSON.stringify(data, null, 2)}\n`;
+                } else {
+                    const errorText = await response.text();
+                    resultElement.textContent += `❌ STANDARD API FAILED!\n`;
+                    resultElement.textContent += `Status: ${response.status} ${response.statusText}\n`;
+                    resultElement.textContent += `Error: ${errorText}\n`;
+                }
+                
+            } catch (error) {
+                console.error('Standard API Network Error:', error);
+                resultElement.textContent += `🚫 STANDARD API NETWORK ERROR: ${error.message}\n`;
+            }
+        }
+        
+        function testDirectBrowser() {
+            const resultElement = document.getElementById('result');
+            resultElement.textContent += '\n--- Direct Browser Test ---\n';
+            resultElement.textContent += 'Opening direct browser window to test API access...\n';
+            resultElement.textContent += 'Check if it asks for credentials or shows data directly.\n\n';
+            
+            // Open in new window to test direct access
+            window.open('https://dev279775.service-now.com/api/1813479/actr1_incident/incident/INC0008001', '_blank');
+        }
+        
+        function clearResults() {
+            document.getElementById('result').textContent = '';
+        }
+    </script>
+</body>
+</html>
