@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ServiceNow OAuth Test</title>
+</head>
+<body>
+    <h1>ServiceNow OAuth Authentication Test</h1>
+    
+    <button onclick="testOAuthToken()">Test OAuth Token Request</button>
+    <button onclick="testIncidentAPI()">Test Incident API with OAuth</button>
+    <button onclick="clearResults()">Clear Results</button>
+    
+    <pre id="result"></pre>
+    
+    <script>
+        const CLIENT_ID = 'f5128ff271732250433aeb0e714b8cae';
+        const CLIENT_SECRET = 'VxgMXG`ccF';
+        const INSTANCE_URL = 'https://dev279775.service-now.com';
+        
+        let accessToken = null;
+        
+        async function testOAuthToken() {
+            const resultElement = document.getElementById('result');
+            resultElement.textContent = 'Testing OAuth token request...\n';
+            
+            try {
+                const tokenUrl = `${INSTANCE_URL}/oauth_token.do`;
+                
+                const body = new URLSearchParams({
+                    grant_type: 'client_credentials',
+                    client_id: CLIENT_ID,
+                    client_secret: CLIENT_SECRET
+                });
+                
+                console.log('Requesting OAuth token from:', tokenUrl);
+                console.log('With client ID:', CLIENT_ID);
+                
+                const response = await fetch(tokenUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Accept': 'application/json'
+                    },
+                    body: body.toString(),
+                    mode: 'cors'
+                });
+                
+                console.log('Token response status:', response.status);
+                
+                if (response.ok) {
+                    const tokenData = await response.json();
+                    accessToken = tokenData.access_token;
+                    
+                    resultElement.textContent += `✅ OAuth Token SUCCESS!\n\n`;
+                    resultElement.textContent += `Response: ${JSON.stringify(tokenData, null, 2)}\n\n`;
+                    resultElement.textContent += `Token Type: ${tokenData.token_type}\n`;
+                    resultElement.textContent += `Expires In: ${tokenData.expires_in} seconds\n`;
+                    resultElement.textContent += `Access Token: ${tokenData.access_token.substring(0, 50)}...\n`;
+                } else {
+                    const errorText = await response.text();
+                    resultElement.textContent += `❌ OAuth Token FAILED: ${response.status} ${response.statusText}\n\n`;
+                    resultElement.textContent += `Error Response: ${errorText}\n`;
+                }
+                
+            } catch (error) {
+                console.error('OAuth Test Error:', error);
+                resultElement.textContent += `🚫 NETWORK ERROR: ${error.message}\n`;
+            }
+        }
+        
+        async function testIncidentAPI() {
+            const resultElement = document.getElementById('result');
+            
+            if (!accessToken) {
+                resultElement.textContent += '\n❌ No access token available. Please test OAuth token first.\n';
+                return;
+            }
+            
+            resultElement.textContent += '\n--- Testing Incident API with OAuth Token ---\n';
+            
+            try {
+                // Test custom API endpoint
+                const customUrl = `${INSTANCE_URL}/api/1813479/actr1_incident/incident/INC0008001`;
+                
+                const response = await fetch(customUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultElement.textContent += `✅ Custom API SUCCESS!\n\n`;
+                    resultElement.textContent += `Incident Data: ${JSON.stringify(data, null, 2)}\n`;
+                } else {
+                    const errorText = await response.text();
+                    resultElement.textContent += `❌ Custom API FAILED: ${response.status} ${response.statusText}\n`;
+                    resultElement.textContent += `Error: ${errorText}\n`;
+                    
+                    // Try standard API as fallback
+                    resultElement.textContent += '\nTrying standard API...\n';
+                    
+                    const standardUrl = `${INSTANCE_URL}/api/now/table/incident?sysparm_query=number=INC0008001&sysparm_fields=number,short_description,state,priority,assigned_to,sys_id`;
+                    
+                    const standardResponse = await fetch(standardUrl, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`,
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        mode: 'cors'
+                    });
+                    
+                    if (standardResponse.ok) {
+                        const standardData = await standardResponse.json();
+                        resultElement.textContent += `✅ Standard API SUCCESS!\n\n`;
+                        resultElement.textContent += `Incident Data: ${JSON.stringify(standardData, null, 2)}\n`;
+                    } else {
+                        const standardErrorText = await standardResponse.text();
+                        resultElement.textContent += `❌ Standard API ALSO FAILED: ${standardResponse.status}\n`;
+                        resultElement.textContent += `Error: ${standardErrorText}\n`;
+                    }
+                }
+                
+            } catch (error) {
+                console.error('API Test Error:', error);
+                resultElement.textContent += `🚫 NETWORK ERROR: ${error.message}\n`;
+            }
+        }
+        
+        function clearResults() {
+            document.getElementById('result').textContent = '';
+            accessToken = null;
+        }
+    </script>
+</body>
+</html>

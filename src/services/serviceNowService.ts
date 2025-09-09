@@ -2,57 +2,16 @@ import { ServiceNowConfig, ServiceNowResponse, IncidentDetails, OAuthTokenRespon
 
 class ServiceNowService {
   private config: ServiceNowConfig;
-  private accessToken: string | null = null;
-  private tokenExpiry: number = 0;
 
   constructor(config: ServiceNowConfig) {
     this.config = config;
   }
 
-  private async getAccessToken(): Promise<string> {
-    // Check if we have a valid token
-    if (this.accessToken && Date.now() < this.tokenExpiry) {
-      return this.accessToken;
-    }
-
-    // Get new token
-    const tokenUrl = `${this.config.instanceUrl}/oauth_token.do`;
-    
-    const body = new URLSearchParams({
-      grant_type: this.config.grantType || 'client_credentials',
-      client_id: this.config.clientId,
-      client_secret: this.config.clientSecret
-    });
-
-    console.log('Requesting OAuth token from:', tokenUrl);
-
-    const response = await fetch(tokenUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json'
-      },
-      body: body.toString(),
-      mode: 'cors'
-    });
-
-    if (!response.ok) {
-      throw new Error(`OAuth token request failed: ${response.status} ${response.statusText}`);
-    }
-
-    const tokenData: OAuthTokenResponse = await response.json();
-    this.accessToken = tokenData.access_token;
-    // Set expiry to 90% of actual expiry time for safety margin
-    this.tokenExpiry = Date.now() + (tokenData.expires_in * 900);
-
-    console.log('OAuth token obtained successfully');
-    return this.accessToken;
-  }
-
   private async getAuthHeaders(): Promise<HeadersInit> {
-    const token = await this.getAccessToken();
+    // Use custom headers instead of OAuth token for CORS compatibility
     return {
-      'Authorization': `Bearer ${token}`,
+      'X-Client-ID': this.config.clientId,
+      'X-Client-Secret': this.config.clientSecret,
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     };
@@ -222,7 +181,7 @@ console.log('ServiceNow Config Debug:', {
   instanceUrl: serviceNowConfig.instanceUrl,
   clientId: serviceNowConfig.clientId,
   clientSecretSet: !!serviceNowConfig.clientSecret,
-  grantType: serviceNowConfig.grantType
+  authMethod: 'Custom Headers (CORS-friendly)'
 });
 
 export const serviceNowService = new ServiceNowService(serviceNowConfig);
