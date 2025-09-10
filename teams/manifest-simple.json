@@ -1,0 +1,42 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.16",
+  "version": "1.0.3",
+  "id": "b2c3d4e5-f6a7-8901-bcde-f23456789012",
+  "packageName": "com.actr1.simple",
+  "developer": {
+    "name": "ACTR1 Team",
+    "websiteUrl": "https://alokshrotritr.github.io",
+    "privacyUrl": "https://alokshrotritr.github.io",
+    "termsOfUseUrl": "https://alokshrotritr.github.io"
+  },
+  "icons": {
+    "color": "icon-color.png",
+    "outline": "icon-outline.png"
+  },
+  "name": {
+    "short": "ACTR1",
+    "full": "ACTR1 Incident App"
+  },
+  "description": {
+    "short": "Incident reporting app",
+    "full": "Submit incident numbers for TRT calls"
+  },
+  "accentColor": "#0078D4",
+  "staticTabs": [
+    {
+      "entityId": "tab1",
+      "name": "Incidents",
+      "contentUrl": "https://alokshrotritr.github.io/ACTR1/",
+      "scopes": [
+        "personal"
+      ]
+    }
+  ],
+  "permissions": [
+    "identity"
+  ],
+  "validDomains": [
+    "alokshrotritr.github.io"
+  ]
+}
