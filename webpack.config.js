@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
 
 module.exports = (env, argv) => {
@@ -37,6 +38,14 @@ module.exports = (env, argv) => {
         templateParameters: {
           PUBLIC_URL: isProduction ? '.' : '',
         },
+      }),
+      new CopyWebpackPlugin({
+        patterns: [
+          {
+            from: './public/oauth-callback.html',
+            to: 'oauth-callback.html',
+          },
+        ],
       }),
       new webpack.DefinePlugin({
         'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),

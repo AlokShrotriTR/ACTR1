@@ -24,13 +24,13 @@
   "type": "commonjs",
   "dependencies": {
     "@fluentui/react-components": "^9.68.3",
+    "@fluentui/react-icons": "^2.0.220",
     "@microsoft/teams-js": "^2.42.0",
     "@microsoft/teamsfx": "^4.0.0",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "@fluentui/react-icons": "^2.0.220"
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@babel/core": "^7.28.3",
@@ -41,6 +41,7 @@
     "@types/webpack": "^5.28.5",
     "@types/webpack-dev-server": "^4.7.1",
     "babel-loader": "^10.0.0",
+    "copy-webpack-plugin": "^13.0.1",
     "css-loader": "^7.1.2",
     "gh-pages": "^6.3.0",
     "html-webpack-plugin": "^5.6.4",
