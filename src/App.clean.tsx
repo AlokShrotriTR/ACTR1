@@ -88,7 +88,7 @@ export const App: React.FC = () => {
   const oauthConfig: OAuthConfig = {
     clientId: 'f5128ff271732250433aeb0e714b8cae', // ServiceNow OAuth app client ID
     clientSecret: 'VxgMXG`ccF', // ServiceNow OAuth app client secret
-    redirectUri: 'https://alokshrotritr.github.io/ACTR1/', // Your app's redirect URI
+    redirectUri: 'https://alokshrotritr.github.io/ACTR1/oauth-callback.html', // Dedicated OAuth callback page
     scope: 'useraccount', // ServiceNow OAuth scope
     authUrl: 'https://dev279775.service-now.com/oauth_auth.do',
     tokenUrl: 'https://dev279775.service-now.com/oauth_token.do'
@@ -101,7 +101,7 @@ export const App: React.FC = () => {
   // OAuth Authentication Functions
   const initiateOAuthFlow = () => {
     setIsAuthenticating(true);
-    setMessage('🔐 Redirecting to ServiceNow for authentication...');
+    setMessage('🔐 Opening ServiceNow authentication window...');
     setMessageType('info');
 
     const authParams = new URLSearchParams({
@@ -113,7 +113,61 @@ export const App: React.FC = () => {
     });
 
     const authUrl = `${oauthConfig.authUrl}?${authParams.toString()}`;
-    window.location.href = authUrl;
+    
+    // Open OAuth in popup window to avoid CORS issues
+    const popup = window.open(
+      authUrl,
+      'servicenow-oauth',
+      'width=600,height=700,scrollbars=yes,resizable=yes'
+    );
+
+    if (!popup) {
+      setMessage('❌ Popup blocked. Please allow popups and try again.');
+      setMessageType('error');
+      setIsAuthenticating(false);
+      return;
+    }
+
+    // Listen for popup completion
+    const checkClosed = setInterval(() => {
+      if (popup.closed) {
+        clearInterval(checkClosed);
+        if (!oauthToken) {
+          setMessage('❌ Authentication was cancelled');
+          setMessageType('error');
+          setIsAuthenticating(false);
+        }
+      }
+    }, 1000);
+
+    // Listen for message from popup
+    const messageListener = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      
+      if (event.data.type === 'OAUTH_SUCCESS') {
+        clearInterval(checkClosed);
+        popup.close();
+        window.removeEventListener('message', messageListener);
+        
+        const { code } = event.data;
+        if (code) {
+          exchangeCodeForToken(code);
+        } else {
+          setMessage('❌ No authorization code received');
+          setMessageType('error');
+          setIsAuthenticating(false);
+        }
+      } else if (event.data.type === 'OAUTH_ERROR') {
+        clearInterval(checkClosed);
+        popup.close();
+        window.removeEventListener('message', messageListener);
+        setMessage(`❌ Authentication failed: ${event.data.error}`);
+        setMessageType('error');
+        setIsAuthenticating(false);
+      }
+    };
+
+    window.addEventListener('message', messageListener);
   };
 
   const exchangeCodeForToken = async (authCode: string): Promise<OAuthToken | null> => {
