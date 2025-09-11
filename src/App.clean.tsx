@@ -39,6 +39,22 @@ interface IncidentData {
   opened_at: string;
 }
 
+interface OAuthConfig {
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  scope: string;
+  authUrl: string;
+  tokenUrl: string;
+}
+
+interface OAuthToken {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  refresh_token?: string;
+}
+
 const useStyles = makeStyles({
   appContainer: {
     padding: tokens.spacingVerticalL,
@@ -65,9 +81,145 @@ export const App: React.FC = () => {
   const [isTeamsInitialized, setIsTeamsInitialized] = useState(false);
   const [teamsContext, setTeamsContext] = useState<TeamsContext | null>(null);
   const [incidentData, setIncidentData] = useState<IncidentData | null>(null);
+  const [oauthToken, setOauthToken] = useState<OAuthToken | null>(null);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+
+  // OAuth Configuration for ServiceNow
+  const oauthConfig: OAuthConfig = {
+    clientId: 'f5128ff271732250433aeb0e714b8cae', // ServiceNow OAuth app client ID
+    clientSecret: 'VxgMXG`ccF', // ServiceNow OAuth app client secret
+    redirectUri: 'https://alokshrotritr.github.io/ACTR1/', // Your app's redirect URI
+    scope: 'useraccount', // ServiceNow OAuth scope
+    authUrl: 'https://dev279775.service-now.com/oauth_auth.do',
+    tokenUrl: 'https://dev279775.service-now.com/oauth_token.do'
+  };
 
   const isValidIncidentNumber = (value: string): boolean => {
     return /^INC\d{7}$/.test(value);
+  };
+
+  // OAuth Authentication Functions
+  const initiateOAuthFlow = () => {
+    setIsAuthenticating(true);
+    setMessage('🔐 Redirecting to ServiceNow for authentication...');
+    setMessageType('info');
+
+    const authParams = new URLSearchParams({
+      response_type: 'code',
+      client_id: oauthConfig.clientId,
+      redirect_uri: oauthConfig.redirectUri,
+      scope: oauthConfig.scope,
+      state: Math.random().toString(36).substring(2, 15) // CSRF protection
+    });
+
+    const authUrl = `${oauthConfig.authUrl}?${authParams.toString()}`;
+    window.location.href = authUrl;
+  };
+
+  const exchangeCodeForToken = async (authCode: string): Promise<OAuthToken | null> => {
+    try {
+      const tokenParams = new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: oauthConfig.clientId,
+        client_secret: oauthConfig.clientSecret,
+        code: authCode,
+        redirect_uri: oauthConfig.redirectUri
+      });
+
+      const response = await fetch(oauthConfig.tokenUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json'
+        },
+        body: tokenParams.toString()
+      });
+
+      if (response.ok) {
+        const tokenData: OAuthToken = await response.json();
+        console.log('✅ OAuth token received successfully');
+        return tokenData;
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Failed to exchange code for token:', response.status, errorText);
+        return null;
+      }
+    } catch (error) {
+      console.error('❌ Error during token exchange:', error);
+      return null;
+    }
+  };
+
+  const refreshAccessToken = async (refreshToken: string): Promise<OAuthToken | null> => {
+    try {
+      const tokenParams = new URLSearchParams({
+        grant_type: 'refresh_token',
+        client_id: oauthConfig.clientId,
+        client_secret: oauthConfig.clientSecret,
+        refresh_token: refreshToken
+      });
+
+      const response = await fetch(oauthConfig.tokenUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json'
+        },
+        body: tokenParams.toString()
+      });
+
+      if (response.ok) {
+        const tokenData: OAuthToken = await response.json();
+        console.log('✅ Access token refreshed successfully');
+        return tokenData;
+      } else {
+        console.error('❌ Failed to refresh token');
+        return null;
+      }
+    } catch (error) {
+      console.error('❌ Error during token refresh:', error);
+      return null;
+    }
+  };
+
+  const makeAuthenticatedRequest = async (url: string, options: RequestInit = {}): Promise<Response> => {
+    if (!oauthToken) {
+      throw new Error('No OAuth token available');
+    }
+
+    const headers = {
+      'Authorization': `Bearer ${oauthToken.access_token}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      ...options.headers
+    };
+
+    let response = await fetch(url, {
+      ...options,
+      headers
+    });
+
+    // If token expired, try to refresh
+    if (response.status === 401 && oauthToken.refresh_token) {
+      console.log('🔄 Access token expired, attempting refresh...');
+      const newToken = await refreshAccessToken(oauthToken.refresh_token);
+      
+      if (newToken) {
+        setOauthToken(newToken);
+        localStorage.setItem('servicenow_oauth_token', JSON.stringify(newToken));
+        
+        // Retry the request with new token
+        response = await fetch(url, {
+          ...options,
+          headers: {
+            ...headers,
+            'Authorization': `Bearer ${newToken.access_token}`
+          }
+        });
+      }
+    }
+
+    return response;
   };
 
   useEffect(() => {
@@ -96,11 +248,70 @@ export const App: React.FC = () => {
       }
     };
 
+    const handleOAuthCallback = async () => {
+      // Check if we're returning from OAuth flow
+      const urlParams = new URLSearchParams(window.location.search);
+      const authCode = urlParams.get('code');
+      const error = urlParams.get('error');
+
+      if (error) {
+        console.error('❌ OAuth error:', error);
+        setMessage(`❌ Authentication failed: ${error}`);
+        setMessageType('error');
+        setIsAuthenticating(false);
+        return;
+      }
+
+      if (authCode) {
+        console.log('🔐 Processing OAuth callback...');
+        setMessage('🔐 Completing authentication...');
+        setMessageType('info');
+
+        const token = await exchangeCodeForToken(authCode);
+        if (token) {
+          setOauthToken(token);
+          localStorage.setItem('servicenow_oauth_token', JSON.stringify(token));
+          setMessage('✅ Successfully authenticated with ServiceNow!');
+          setMessageType('success');
+          
+          // Clean up URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } else {
+          setMessage('❌ Failed to complete authentication');
+          setMessageType('error');
+        }
+        setIsAuthenticating(false);
+      }
+    };
+
+    const loadStoredToken = () => {
+      // Check for stored OAuth token
+      const storedToken = localStorage.getItem('servicenow_oauth_token');
+      if (storedToken) {
+        try {
+          const token: OAuthToken = JSON.parse(storedToken);
+          setOauthToken(token);
+          console.log('✅ Loaded stored OAuth token');
+        } catch (error) {
+          console.error('❌ Failed to parse stored token:', error);
+          localStorage.removeItem('servicenow_oauth_token');
+        }
+      }
+    };
+
     initializeTeams();
+    handleOAuthCallback();
+    loadStoredToken();
   }, []);
 
-  // Simple ServiceNow API call function
+  // OAuth-enabled ServiceNow API call function
   const searchServiceNow = async (incidentNumber: string) => {
+    if (!oauthToken) {
+      setMessage('❌ Please authenticate with ServiceNow first');
+      setMessageType('error');
+      return;
+    }
+
     setIsLoading(true);
     setMessage('Searching ServiceNow...');
     setMessageType('info');
@@ -109,18 +320,10 @@ export const App: React.FC = () => {
     try {
       console.log('🔍 Starting ServiceNow search for:', incidentNumber);
       
-      const apiUsername = 'actr1_user';
-      const apiPassword = '->CW+?p-l$U]=}q7E#g.+1!i7m6i0(TV;XSfi(f!m6BTI}cR2-h(+Gz0}Aj<mwrOI:_F#3&hCW9@4dq;aU&A6-3FRe_:&GLswavQ';
-      
       const url = `https://dev279775.service-now.com/api/now/table/incident?sysparm_query=number=${incidentNumber}&sysparm_fields=number,short_description,state,priority,assigned_to,caller_id,opened_at`;
       
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Basic ' + btoa(`${apiUsername}:${apiPassword}`),
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
+      const response = await makeAuthenticatedRequest(url, {
+        method: 'GET'
       });
 
       if (response.ok) {
@@ -162,17 +365,33 @@ export const App: React.FC = () => {
       return;
     }
 
+    if (!oauthToken) {
+      setMessage('❌ Please authenticate with ServiceNow first');
+      setMessageType('error');
+      return;
+    }
+
     // Call ServiceNow API
     await searchServiceNow(userInput.majorIncidentNumber);
   };
 
-  // Add work notes to ServiceNow incident
+  const handleLogout = () => {
+    setOauthToken(null);
+    localStorage.removeItem('servicenow_oauth_token');
+    setMessage('✅ Logged out successfully');
+    setMessageType('success');
+    setIncidentData(null);
+  };
+
+  // OAuth-enabled add work notes to ServiceNow incident
   const addWorkNotesToIncident = async (incidentNumber: string, meetingInfo: string): Promise<boolean> => {
+    if (!oauthToken) {
+      console.error('❌ No OAuth token available');
+      return false;
+    }
+
     try {
       console.log('📝 Adding work notes to incident:', incidentNumber);
-      
-      const apiUsername = 'actr1_user';
-      const apiPassword = '->CW+?p-l$U]=}q7E#g.+1!i7m6i0(TV;XSfi(f!m6BTI}cR2-h(+Gz0}Aj<mwrOI:_F#3&hCW9@4dq;aU&A6-3FRe_:&GLswavQ';
       
       const workNote = `TRT Call initiated at ${new Date().toLocaleString()}\n${meetingInfo}\n\nTechnical Response Team has been activated for this incident.`;
       
@@ -180,13 +399,8 @@ export const App: React.FC = () => {
       const searchUrl = `https://dev279775.service-now.com/api/now/table/incident?sysparm_query=number=${incidentNumber}&sysparm_fields=sys_id`;
       
       console.log('🔍 Searching for incident sys_id...');
-      const searchResponse = await fetch(searchUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Basic ' + btoa(`${apiUsername}:${apiPassword}`),
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
+      const searchResponse = await makeAuthenticatedRequest(searchUrl, {
+        method: 'GET'
       });
 
       if (searchResponse.ok) {
@@ -201,13 +415,8 @@ export const App: React.FC = () => {
           const updateUrl = `https://dev279775.service-now.com/api/now/table/incident/${sysId}`;
           
           console.log('📝 Updating incident with work notes...');
-          const updateResponse = await fetch(updateUrl, {
+          const updateResponse = await makeAuthenticatedRequest(updateUrl, {
             method: 'PATCH',
-            headers: {
-              'Authorization': 'Basic ' + btoa(`${apiUsername}:${apiPassword}`),
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
             body: JSON.stringify({
               work_notes: workNote
             })
@@ -300,6 +509,42 @@ export const App: React.FC = () => {
           </MessageBar>
         )}
 
+        {/* OAuth Authentication Section */}
+        {!oauthToken ? (
+          <Card style={{ marginBottom: '20px' }}>
+            <CardHeader
+              header={<Text weight="semibold">🔐 ServiceNow Authentication</Text>}
+            />
+            <div style={{ padding: '10px' }}>
+              <Body1 style={{ marginBottom: '15px' }}>
+                Please authenticate with ServiceNow to access incident data.
+              </Body1>
+              <Button
+                appearance="primary"
+                onClick={initiateOAuthFlow}
+                disabled={isAuthenticating}
+              >
+                {isAuthenticating ? 'Authenticating...' : '🔐 Login to ServiceNow'}
+              </Button>
+            </div>
+          </Card>
+        ) : (
+          <Card style={{ marginBottom: '20px' }}>
+            <CardHeader
+              header={<Text weight="semibold">✅ ServiceNow Authenticated</Text>}
+            />
+            <div style={{ padding: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Body1>You are authenticated with ServiceNow</Body1>
+              <Button
+                appearance="outline"
+                onClick={handleLogout}
+              >
+                🚪 Logout
+              </Button>
+            </div>
+          </Card>
+        )}
+
         <Card>
           <CardHeader
             header={<Text weight="semibold">🔍 Search Major Incident</Text>}
@@ -320,7 +565,7 @@ export const App: React.FC = () => {
             appearance="primary"
             icon={<Search20Regular />}
             onClick={handleSearch}
-            disabled={!isValidIncidentNumber(userInput.majorIncidentNumber) || isLoading}
+            disabled={!isValidIncidentNumber(userInput.majorIncidentNumber) || isLoading || !oauthToken}
             className={styles.searchButton}
           >
             {isLoading ? 'Searching...' : 'Search Incident'}
@@ -368,9 +613,10 @@ export const App: React.FC = () => {
         <div style={{ marginTop: '20px', fontSize: '14px', color: '#666', textAlign: 'center' }}>
           <p>✅ Clean UI working</p>
           <p>✅ Input validation working</p>
-          <p>✅ ServiceNow API integration added</p>
+          <p>✅ OAuth ServiceNow integration added</p>
           <p>✅ TRT Call functionality ready</p>
           <p>{isTeamsInitialized ? '✅ Teams integration active' : '⚠️ Standalone mode (not in Teams)'}</p>
+          <p>{oauthToken ? '✅ ServiceNow OAuth authenticated' : '🔐 ServiceNow authentication required'}</p>
         </div>
       </div>
     </FluentProvider>
