@@ -83,6 +83,7 @@ export const App: React.FC = () => {
   const [incidentData, setIncidentData] = useState<IncidentData | null>(null);
   const [oauthToken, setOauthToken] = useState<OAuthToken | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [useOAuth, setUseOAuth] = useState(true); // Toggle between OAuth and Basic Auth
 
   // OAuth Configuration for ServiceNow
   const oauthConfig: OAuthConfig = {
@@ -200,6 +201,13 @@ export const App: React.FC = () => {
       }
     } catch (error) {
       console.error('❌ Error during token exchange:', error);
+      
+      // Show clear error message about CORS
+      setMessage('❌ OAuth token exchange blocked by CORS. ServiceNow admin needs to add CORS rule for oauth_token.do endpoint. Using Basic Auth as fallback.');
+      setMessageType('error');
+      
+      // Switch to Basic Auth mode
+      setUseOAuth(false);
       return null;
     }
   };
