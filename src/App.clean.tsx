@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import * as microsoftTeams from '@microsoft/teams-js';
+import { authentication } from '@microsoft/teams-js';
 import {
   FluentProvider,
   webLightTheme,
@@ -100,22 +101,79 @@ export const App: React.FC = () => {
   };
 
   // OAuth Authentication Functions
-  const initiateOAuthFlow = () => {
+  const initiateOAuthFlow = async () => {
     setIsAuthenticating(true);
-    setMessage('🔐 Opening ServiceNow authentication window...');
+    setMessage('🔐 Authenticating with ServiceNow...');
     setMessageType('info');
 
+    try {
+      // Check if we're in Teams environment
+      if (isTeamsInitialized && teamsContext) {
+        // Use Teams SDK authentication
+        await authenticateWithTeamsSDK();
+      } else {
+        // Use popup for web browser (fallback)
+        await authenticateWithPopup();
+      }
+    } catch (error) {
+      console.error('❌ Authentication failed:', error);
+      setMessage('❌ Authentication failed. Please try again.');
+      setMessageType('error');
+      setIsAuthenticating(false);
+    }
+  };
+
+  const authenticateWithTeamsSDK = async () => {
+    try {
+      const authParams = new URLSearchParams({
+        response_type: 'code',
+        client_id: oauthConfig.clientId,
+        redirect_uri: oauthConfig.redirectUri,
+        scope: oauthConfig.scope,
+        state: Math.random().toString(36).substring(2, 15)
+      });
+
+      const authUrl = `${oauthConfig.authUrl}?${authParams.toString()}`;
+
+      // Use Teams SDK authentication
+      const result = await authentication.authenticate({
+        url: authUrl,
+        width: 600,
+        height: 700,
+        isExternal: true
+      });
+
+      if (result) {
+        // Extract code from the result URL
+        const urlParams = new URLSearchParams(result.split('?')[1]);
+        const code = urlParams.get('code');
+        
+        if (code) {
+          await handleAuthCode(code);
+        } else {
+          throw new Error('No authorization code received');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Teams SDK authentication failed:', error);
+      setMessage('❌ Teams authentication failed. This may be due to ServiceNow CORS restrictions.');
+      setMessageType('error');
+      setIsAuthenticating(false);
+    }
+  };
+
+  const authenticateWithPopup = async () => {
     const authParams = new URLSearchParams({
       response_type: 'code',
       client_id: oauthConfig.clientId,
       redirect_uri: oauthConfig.redirectUri,
       scope: oauthConfig.scope,
-      state: Math.random().toString(36).substring(2, 15) // CSRF protection
+      state: Math.random().toString(36).substring(2, 15)
     });
 
     const authUrl = `${oauthConfig.authUrl}?${authParams.toString()}`;
     
-    // Open OAuth in popup window to avoid CORS issues
+    // Open OAuth in popup window (for web browser)
     const popup = window.open(
       authUrl,
       'servicenow-oauth',
@@ -152,7 +210,7 @@ export const App: React.FC = () => {
         
         const { code } = event.data;
         if (code) {
-          exchangeCodeForToken(code);
+          handleAuthCode(code);
         } else {
           setMessage('❌ No authorization code received');
           setMessageType('error');
@@ -169,6 +227,20 @@ export const App: React.FC = () => {
     };
 
     window.addEventListener('message', messageListener);
+  };
+
+  const handleAuthCode = async (code: string) => {
+    const tokenData = await exchangeCodeForToken(code);
+    if (tokenData) {
+      setOauthToken(tokenData);
+      localStorage.setItem('serviceNowToken', JSON.stringify(tokenData));
+      setMessage('✅ Successfully authenticated with ServiceNow!');
+      setMessageType('success');
+    } else {
+      setMessage('❌ Failed to exchange authorization code for token');
+      setMessageType('error');
+    }
+    setIsAuthenticating(false);
   };
 
   const exchangeCodeForToken = async (authCode: string): Promise<OAuthToken | null> => {
