@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import * as microsoftTeams from '@microsoft/teams-js';
 import { authentication } from '@microsoft/teams-js';
+import { makeProxyRequest } from './services/proxyService';
 import {
   FluentProvider,
   webLightTheme,
@@ -253,33 +254,32 @@ export const App: React.FC = () => {
         redirect_uri: oauthConfig.redirectUri
       });
 
-      const response = await fetch(oauthConfig.tokenUrl, {
+      // Use proxy to avoid CORS issues
+      const proxyRequest = {
+        endpoint: oauthConfig.tokenUrl,
         method: 'POST',
+        body: tokenParams.toString(),
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Accept': 'application/json'
-        },
-        body: tokenParams.toString()
-      });
+        }
+      };
 
-      if (response.ok) {
-        const tokenData: OAuthToken = await response.json();
-        console.log('✅ OAuth token received successfully');
-        return tokenData;
+      const tokenData = await makeProxyRequest(proxyRequest);
+      
+      if (tokenData && tokenData.access_token) {
+        console.log('✅ OAuth token received successfully via proxy');
+        return tokenData as OAuthToken;
       } else {
-        const errorText = await response.text();
-        console.error('❌ Failed to exchange code for token:', response.status, errorText);
+        console.error('❌ Invalid token response from proxy:', tokenData);
         return null;
       }
     } catch (error) {
-      console.error('❌ Error during token exchange:', error);
+      console.error('❌ Error during proxy token exchange:', error);
       
-      // Show clear error message about CORS
-      setMessage('❌ OAuth token exchange blocked by CORS. ServiceNow admin needs to add CORS rule for oauth_token.do endpoint. Using Basic Auth as fallback.');
+      // Show helpful error message
+      setMessage('❌ OAuth token exchange failed. Please check if the proxy service is deployed and configured correctly.');
       setMessageType('error');
-      
-      // Switch to Basic Auth mode
-      setUseOAuth(false);
       return null;
     }
   };
@@ -293,25 +293,28 @@ export const App: React.FC = () => {
         refresh_token: refreshToken
       });
 
-      const response = await fetch(oauthConfig.tokenUrl, {
+      // Use proxy for refresh token as well
+      const proxyRequest = {
+        endpoint: oauthConfig.tokenUrl,
         method: 'POST',
+        body: tokenParams.toString(),
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Accept': 'application/json'
-        },
-        body: tokenParams.toString()
-      });
+        }
+      };
 
-      if (response.ok) {
-        const tokenData: OAuthToken = await response.json();
-        console.log('✅ Access token refreshed successfully');
-        return tokenData;
+      const tokenData = await makeProxyRequest(proxyRequest);
+      
+      if (tokenData && tokenData.access_token) {
+        console.log('✅ Access token refreshed successfully via proxy');
+        return tokenData as OAuthToken;
       } else {
-        console.error('❌ Failed to refresh token');
+        console.error('❌ Failed to refresh token via proxy');
         return null;
       }
     } catch (error) {
-      console.error('❌ Error during token refresh:', error);
+      console.error('❌ Error during token refresh via proxy:', error);
       return null;
     }
   };

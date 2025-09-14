@@ -1,0 +1,22 @@
+{
+  "name": "servicenow-oauth-proxy",
+  "version": "1.0.0",
+  "description": "Azure Function to proxy ServiceNow OAuth requests and bypass CORS",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "prestart": "npm run build",
+    "start": "func start",
+    "test": "echo \"No tests yet\""
+  },
+  "dependencies": {
+    "@azure/functions": "^3.5.1",
+    "node-fetch": "^2.6.7"
+  },
+  "devDependencies": {
+    "@azure/functions": "^3.5.1",
+    "@types/node": "^18.x",
+    "typescript": "^4.0.0"
+  }
+}
