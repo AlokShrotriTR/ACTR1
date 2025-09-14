@@ -3,13 +3,13 @@ const PROXY_CONFIGS = {
   // Update these URLs after deploying your proxy
   vercel: 'https://actr1.vercel.app/api/servicenow-proxy',
   netlify: 'https://actr1.netlify.app/.netlify/functions/servicenow-proxy',
-  azure: 'https://actr1-proxy.azurewebsites.net/api/servicenow-proxy',
+  azure: 'https://actr1-servicenow-proxy.azurewebsites.net/api/servicenow-proxy',
   // For local testing
   local: 'http://localhost:7071/api/servicenow-proxy'
 };
 
-// Choose which proxy to use - UPDATE THIS AFTER DEPLOYING
-export const PROXY_URL = PROXY_CONFIGS.vercel; // Change this to your deployed proxy
+// Using Azure Functions - UPDATE THIS URL AFTER DEPLOYING
+export const PROXY_URL = PROXY_CONFIGS.azure; // Will be updated after Azure deployment
 
 export interface ProxyRequest {
   endpoint: string;

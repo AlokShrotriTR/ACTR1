@@ -11,12 +11,15 @@
     "test": "echo \"No tests yet\""
   },
   "dependencies": {
-    "@azure/functions": "^3.5.1",
-    "node-fetch": "^2.6.7"
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
     "@azure/functions": "^3.5.1",
     "@types/node": "^18.x",
     "typescript": "^4.0.0"
-  }
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
 }
