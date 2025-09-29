@@ -1,15 +1,19 @@
 // Proxy configuration for different deployment options
 const PROXY_CONFIGS = {
-  // Update these URLs after deploying your proxy
-  vercel: 'https://actr1.vercel.app/api/servicenow-proxy',
-  netlify: 'https://actr1.netlify.app/.netlify/functions/servicenow-proxy',
+  // AWS Lambda (Update this URL after deploying to AWS)
+  aws: 'https://YOUR_API_GATEWAY_URL_HERE',
+  // Azure Functions
   azure: 'https://actr1-servicenow-proxy.azurewebsites.net/api/servicenow-proxy',
+  // Vercel
+  vercel: 'https://actr1.vercel.app/api/servicenow-proxy',
+  // Netlify
+  netlify: 'https://actr1.netlify.app/.netlify/functions/servicenow-proxy',
   // For local testing
   local: 'http://localhost:7071/api/servicenow-proxy'
 };
 
-// Using Azure Functions - UPDATE THIS URL AFTER DEPLOYING
-export const PROXY_URL = PROXY_CONFIGS.azure; // Will be updated after Azure deployment
+// Using AWS Lambda - UPDATE THIS URL AFTER DEPLOYING TO AWS
+export const PROXY_URL = PROXY_CONFIGS.aws; // Will be updated after Azure deployment
 
 export interface ProxyRequest {
   endpoint: string;
